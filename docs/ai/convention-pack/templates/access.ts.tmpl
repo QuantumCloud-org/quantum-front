@@ -1,0 +1,43 @@
+// 模板占位：{{Entity}} {{entity}} {{module}}(如 system)
+// 权限守卫：唯一判定入口。安全默认启用 —— 若本页面判定为无需权限守卫，
+// 必须在生成报告写豁免行：access-guard-exempt: {{Entity}} <原因>（见 conventions.md）。
+import { hasPermission } from '@/app/auth/access'
+import type { AuthUser } from '@/types/auth'
+
+type {{Entity}}PermissionSubject =
+  | Pick<AuthUser, 'roles' | 'permissions'>
+  | null
+  | undefined
+
+export type {{Entity}}ManagementAccess = {
+  canCreate{{Entity}}s: boolean
+  canEdit{{Entity}}s: boolean
+  canChange{{Entity}}Status: boolean
+  canDelete{{Entity}}s: boolean
+  canBulkDelete{{Entity}}s: boolean
+  hasRowActions: boolean
+}
+
+export function get{{Entity}}ManagementAccess(
+  user: {{Entity}}PermissionSubject
+): {{Entity}}ManagementAccess {
+  const canCreate{{Entity}}s = hasPermission(user, '{{module}}:{{entity}}:add')
+  // TODO: 若新建/编辑表单依赖关联下拉数据（角色/部门/菜单树等），
+  // 在此 && 上对应的查询权限，例如 hasPermission(user, 'system:dept:treeselect')
+  const canEdit{{Entity}}s =
+    hasPermission(user, '{{module}}:{{entity}}:edit') &&
+    hasPermission(user, '{{module}}:{{entity}}:query')
+  const canChange{{Entity}}Status =
+    hasPermission(user, '{{module}}:{{entity}}:edit') &&
+    hasPermission(user, '{{module}}:{{entity}}:query')
+  const canDelete{{Entity}}s = hasPermission(user, '{{module}}:{{entity}}:remove')
+
+  return {
+    canCreate{{Entity}}s,
+    canEdit{{Entity}}s,
+    canChange{{Entity}}Status,
+    canDelete{{Entity}}s,
+    canBulkDelete{{Entity}}s: canDelete{{Entity}}s,
+    hasRowActions: canEdit{{Entity}}s || canChange{{Entity}}Status || canDelete{{Entity}}s,
+  }
+}

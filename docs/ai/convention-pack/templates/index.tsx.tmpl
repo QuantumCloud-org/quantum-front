@@ -1,0 +1,70 @@
+// 模板占位：{{Module}} 模块名(小驼峰,如 system) · {{Entity}} 实体名(大驼峰,如 User)
+// {{entity}} 实体名(小驼峰,如 user) · {{entityLabel}} 中文名(如 用户) · {{entityPlural}} 复数小驼峰(如 users)
+// 路由挂载：本文件不含 route，挂载动作见 templates/route-registration.md
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { type NavigateFn } from '@/hooks/use-table-url-state'
+import { Header } from '@/components/layout/header'
+import { Main } from '@/components/layout/main'
+import { ProfileDropdown } from '@/components/profile-dropdown'
+import { Search } from '@/components/search'
+import { fetch{{Entity}}s } from './api'
+import { {{Entity}}sDialogs } from './components/{{entityPlural}}-dialogs'
+import { {{Entity}}sPrimaryButtons } from './components/{{entityPlural}}-primary-buttons'
+import { {{Entity}}sProvider } from './components/{{entityPlural}}-provider'
+import { {{Entity}}sTable } from './components/{{entityPlural}}-table'
+import { {{entity}}ManagementSearchSchema } from './search-schema'
+
+type {{Entity}}ManagementPageProps = {
+  search: Record<string, unknown>
+  navigate: NavigateFn
+}
+
+export function {{Entity}}ManagementPage({
+  search,
+  navigate,
+}: {{Entity}}ManagementPageProps) {
+  const parsedSearch = {{entity}}ManagementSearchSchema.parse(search)
+  const {{entity}}sQuery = useQuery({
+    queryKey: ['{{module}}', '{{entityPlural}}', 'list', parsedSearch],
+    queryFn: () => fetch{{Entity}}s(parsedSearch),
+    placeholderData: keepPreviousData,
+  })
+
+  const {{entity}}Page = {{entity}}sQuery.data ?? {
+    pageNum: parsedSearch.page,
+    pageSize: parsedSearch.pageSize,
+    total: 0,
+    pages: 0,
+    records: [],
+  }
+
+  return (
+    <{{Entity}}sProvider>
+      <Header fixed>
+        <div className='flex items-center space-x-4'>
+          <Search />
+          <ProfileDropdown />
+        </div>
+      </Header>
+
+      <Main className='flex flex-1 flex-col gap-4 sm:gap-6'>
+        <div className='flex flex-wrap items-end justify-between gap-3'>
+          <div>
+            <h2 className='text-2xl font-bold tracking-tight'>{{entityLabel}}管理</h2>
+          </div>
+          <{{Entity}}sPrimaryButtons />
+        </div>
+        <{{Entity}}sTable
+          data={ {{entity}}Page.records }
+          total={ {{entity}}Page.total }
+          pageCount={ {{entity}}Page.pages }
+          isLoading={ {{entity}}sQuery.isFetching && !{{entity}}sQuery.data }
+          search={parsedSearch}
+          navigate={navigate}
+        />
+      </Main>
+
+      <{{Entity}}sDialogs />
+    </{{Entity}}sProvider>
+  )
+}

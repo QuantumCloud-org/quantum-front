@@ -1,0 +1,69 @@
+// 模板占位：{{Entity}} {{entity}}
+// Demo 阶段 mock 数据。结构必须与 model.ts / data/schema.ts 的 {{Entity}} 类型完全对齐。
+// 对接真实后端后：删除本文件 + api.ts 里的 USE_MOCK 分支（不要保留死代码）。
+import {
+  type {{Entity}},
+  type {{Entity}}Detail,
+  type {{Entity}}ManagementSearch,
+  type PagedResult,
+} from './model'
+
+export const mock{{Entity}}List: {{Entity}}[] = [
+  {
+    id: '1',
+    // TODO: 按 {{Entity}} 类型补充字段，覆盖启用/停用两种状态各至少 1 条
+    status: 1,
+    remark: '示例数据，仅用于 demo 阶段',
+    createTime: '2026-01-01 10:00:00',
+  },
+  {
+    id: '2',
+    status: 0,
+    remark: null,
+    createTime: '2026-01-02 10:00:00',
+  },
+]
+
+function matchesMockSearch(
+  record: {{Entity}},
+  search: Partial<{{Entity}}ManagementSearch>
+) {
+  if (search.status?.length) {
+    const wantsActive = search.status.includes('active')
+    const wantsInactive = search.status.includes('inactive')
+    if (wantsActive && !wantsInactive && record.status !== 1) return false
+    if (wantsInactive && !wantsActive && record.status !== 0) return false
+  }
+
+  // TODO: 按可搜索字段补充过滤逻辑，模式对齐上面的 status 分支
+
+  return true
+}
+
+export function build{{Entity}}sMockPagedResult(
+  search: Partial<{{Entity}}ManagementSearch>
+): PagedResult<{{Entity}}> {
+  const pageNum = search.page ?? 1
+  const pageSize = search.pageSize ?? 10
+  const filtered = mock{{Entity}}List.filter((record) =>
+    matchesMockSearch(record, search)
+  )
+  const start = (pageNum - 1) * pageSize
+
+  return {
+    pageNum,
+    pageSize,
+    total: filtered.length,
+    pages: Math.max(Math.ceil(filtered.length / pageSize), 1),
+    records: filtered.slice(start, start + pageSize),
+  }
+}
+
+export function mock{{Entity}}Detail({{entity}}Id: string): {{Entity}}Detail {
+  const record = mock{{Entity}}List.find((item) => item.id === {{entity}}Id)
+
+  return {
+    ...(record ?? mock{{Entity}}List[0]),
+    version: '0',
+  }
+}

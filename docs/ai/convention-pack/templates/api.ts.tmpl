@@ -1,0 +1,125 @@
+// 模板占位：{{Module}} {{Entity}} {{entity}} {{entityPlural}}(如 users)
+// 唯一网络层。真实分支不可删除，USE_MOCK 短路必须在本文件顶层判断一次。
+import type { ApiResult } from '@/types/api'
+import { toId } from '@/lib/ids'
+import { apiClient } from '@/lib/http'
+import {
+  build{{Entity}}CreatePayload,
+  build{{Entity}}ListQuery,
+  build{{Entity}}StatusPayload,
+  build{{Entity}}UpdatePayload,
+  type {{Entity}},
+  type {{Entity}}CreateFormInput,
+  type {{Entity}}Detail,
+  type {{Entity}}ManagementSearch,
+  type {{Entity}}StatusUpdateInput,
+  type {{Entity}}UpdateFormInput,
+  type PagedResult,
+} from './model'
+import {
+  build{{Entity}}sMockPagedResult,
+  mock{{Entity}}Detail,
+} from './mock'
+
+// Demo 阶段 mock 开关：仅本文件顶层短路，禁止在组件里散落判断（见 conventions.md「Mock 数据约定」）。
+const USE_MOCK = import.meta.env.VITE_FEATURE_MOCK === 'true'
+
+function unwrapResult<T>(result: ApiResult<T>) {
+  return result.data
+}
+
+function getRecord(input: unknown) {
+  return (input && typeof input === 'object' ? input : {}) as Record<
+    string,
+    unknown
+  >
+}
+
+function normalizeNullableText(value: unknown) {
+  return typeof value === 'string' ? value : null
+}
+
+function normalize{{Entity}}Status(value: unknown): 0 | 1 {
+  return Number(value ?? 1) === 0 ? 0 : 1
+}
+
+function normalize{{Entity}}(input: unknown): {{Entity}} {
+  const record = getRecord(input)
+
+  return {
+    id: toId(record.id),
+    // TODO: 按 model.ts 的 {{Entity}} 类型补充字段 normalize
+    status: normalize{{Entity}}Status(record.status),
+    remark: normalizeNullableText(record.remark),
+    createTime: normalizeNullableText(record.createTime),
+  }
+}
+
+export async function fetch{{Entity}}s(search: Partial<{{Entity}}ManagementSearch>) {
+  if (USE_MOCK) {
+    return build{{Entity}}sMockPagedResult(search)
+  }
+
+  const response = await apiClient.get<ApiResult<PagedResult<unknown>>>(
+    '/{{module}}/{{entity}}/list',
+    {
+      params: build{{Entity}}ListQuery(search),
+    }
+  )
+
+  const page = unwrapResult(response.data)
+  return {
+    pageNum: Number(page.pageNum ?? 1),
+    pageSize: Number(page.pageSize ?? 10),
+    total: Number(page.total ?? 0),
+    pages: Number(page.pages ?? 0),
+    records: (page.records ?? []).map(normalize{{Entity}}),
+  } satisfies PagedResult<{{Entity}}>
+}
+
+export async function fetch{{Entity}}Detail({{entity}}Id: string) {
+  if (USE_MOCK) {
+    return mock{{Entity}}Detail({{entity}}Id)
+  }
+
+  const response = await apiClient.get<ApiResult<unknown>>(
+    `/{{module}}/{{entity}}/${ {{entity}}Id }`
+  )
+
+  return normalize{{Entity}}(unwrapResult(response.data)) as {{Entity}}Detail
+}
+
+export async function create{{Entity}}(input: {{Entity}}CreateFormInput) {
+  const response = await apiClient.post<ApiResult<number | string>>(
+    '/{{module}}/{{entity}}',
+    build{{Entity}}CreatePayload(input)
+  )
+
+  return toId(unwrapResult(response.data))
+}
+
+export async function update{{Entity}}(input: {{Entity}}UpdateFormInput) {
+  const response = await apiClient.put<ApiResult<null>>(
+    '/{{module}}/{{entity}}',
+    build{{Entity}}UpdatePayload(input)
+  )
+
+  return unwrapResult(response.data)
+}
+
+export async function delete{{Entity}}s({{entity}}Ids: string[]) {
+  const response = await apiClient.delete<ApiResult<null>>(
+    `/{{module}}/{{entity}}/${ {{entity}}Ids.join(',') }`
+  )
+
+  return unwrapResult(response.data)
+}
+
+export async function change{{Entity}}Status(input: {{Entity}}StatusUpdateInput) {
+  const response = await apiClient.put<ApiResult<null>>(
+    '/{{module}}/{{entity}}/changeStatus',
+    build{{Entity}}StatusPayload(input)
+  )
+
+  return unwrapResult(response.data)
+}

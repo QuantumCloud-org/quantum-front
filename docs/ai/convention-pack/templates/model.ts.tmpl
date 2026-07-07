@@ -1,0 +1,112 @@
+// 模板占位：{{Entity}} {{entity}} {{Module}}(如 system)
+// 类型 + payload/query 构造。若类型定义过重，可拆出 data/schema.ts，model.ts 只保留构造函数。
+import { toId, toIdList } from '@/lib/ids'
+
+export type {{Entity}}Status = 0 | 1
+export type {{Entity}}StatusFilter = 'active' | 'inactive'
+
+export type {{Entity}} = {
+  id: string
+  // TODO: 按需求补充列表态展示字段，例如：
+  // name: string
+  // deptName: string | null
+  status: {{Entity}}Status
+  remark: string | null
+  createTime: string | null
+}
+
+// 若编辑态需要额外字段（如 version 乐观锁、外键 id），单独声明 {{Entity}}Detail：
+export type {{Entity}}Detail = {{Entity}} & {
+  version: string
+}
+
+export type PagedResult<T> = {
+  pageNum: number
+  pageSize: number
+  total: number
+  pages: number
+  records: T[]
+}
+
+export type {{Entity}}ManagementSearch = {
+  page: number
+  pageSize: number
+  // TODO: 按可搜索字段补充，例如 name: string
+  status: {{Entity}}StatusFilter[]
+}
+
+export type {{Entity}}ListQuery = {
+  pageNum: number
+  pageSize: number
+  // TODO: 与 {{Entity}}ManagementSearch 对应的后端 query 字段（可选）
+  status?: 0 | 1
+}
+
+export type {{Entity}}CreateFormInput = {
+  // TODO: 按新建表单字段补充（字符串态，Number()/toId() 由 buildXxxCreatePayload 转换）
+  status: string
+  remark: string
+}
+
+export type {{Entity}}UpdateFormInput = {{Entity}}CreateFormInput & {
+  id: string
+  version: string
+}
+
+export type {{Entity}}StatusUpdateInput = {
+  {{entity}}Id: string
+  version: string
+  status: 0 | 1
+}
+
+function trimOrEmpty(value?: string | null) {
+  return value?.trim() ?? ''
+}
+
+function toBackendStatus(status?: {{Entity}}StatusFilter) {
+  if (status === 'active') {
+    return 1
+  }
+
+  if (status === 'inactive') {
+    return 0
+  }
+
+  return undefined
+}
+
+export function build{{Entity}}ListQuery(
+  search: Partial<{{Entity}}ManagementSearch>
+): {{Entity}}ListQuery {
+  const status = toBackendStatus(search.status?.[0])
+
+  return {
+    pageNum: search.page ?? 1,
+    pageSize: search.pageSize ?? 10,
+    status,
+  }
+}
+
+export function build{{Entity}}CreatePayload(input: {{Entity}}CreateFormInput) {
+  return {
+    // TODO: 按字段补充，Long 型主键/外键必须过 toId()/toIdList()，不可 Number()
+    status: Number(input.status),
+    remark: trimOrEmpty(input.remark),
+  }
+}
+
+export function build{{Entity}}UpdatePayload(input: {{Entity}}UpdateFormInput) {
+  return {
+    id: toId(input.id),
+    version: toId(input.version),
+    ...build{{Entity}}CreatePayload(input),
+  }
+}
+
+export function build{{Entity}}StatusPayload(input: {{Entity}}StatusUpdateInput) {
+  return {
+    {{entity}}Id: toId(input.{{entity}}Id),
+    version: toId(input.version),
+    status: input.status,
+  }
+}

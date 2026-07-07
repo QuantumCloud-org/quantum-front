@@ -1,0 +1,19 @@
+// 模板占位：{{Entity}} {{entity}}
+// URL search 状态 schema，供 routes/_authenticated/$section/$page.tsx 的 dynamicPageSearchSchema
+// 二次 parse（本 schema 在 index.tsx 里通过 xxxManagementSearchSchema.parse(search) 使用，
+// 不需要单独注册到 TanStack Router 的 validateSearch —— 动态路由用统一的 dynamicPageSearchSchema）。
+import z from 'zod'
+
+export const {{entity}}ManagementSearchSchema = z.object({
+  page: z.number().optional().catch(1),
+  pageSize: z.number().optional().catch(10),
+  status: z
+    .array(z.union([z.literal('active'), z.literal('inactive')]))
+    .optional()
+    .catch([]),
+  // TODO: 按可搜索字段补充，模式对齐：z.string().optional().catch('')
+})
+
+export type {{Entity}}ManagementSearchState = z.infer<
+  typeof {{entity}}ManagementSearchSchema
+>
