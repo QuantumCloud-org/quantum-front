@@ -42,12 +42,30 @@ function loadCustomEnv(mode: string) {
 
 export default defineConfig(({ mode }) => {
   const customEnv = loadCustomEnv(mode)
-  const define = Object.fromEntries(
+  const define: Record<string, string> = Object.fromEntries(
     Object.entries(customEnv).map(([key, value]) => [
       `import.meta.env.${key}`,
       JSON.stringify(value),
     ])
   )
+  // Local demo flag comes from the shell (VITE_FEATURE_MOCK=true bun run dev),
+  // not from .env files — the G4 gate forbids committing it. loadCustomEnv only
+  // reads files, so process.env must be injected explicitly for it to reach
+  // import.meta.env.
+  //
+  // In a production build the flag is force-pinned to 'false' regardless of the
+  // shell env. Without this, a stray VITE_FEATURE_MOCK=true (a demo run and a
+  // `bun run build` sharing one shell, or a CI runner reusing env) would bake
+  // the auth/menu session short-circuit into the prod bundle — an unauthenticated
+  // visitor would render as the fixture user. Pinning to a literal also lets vite
+  // dead-code-eliminate the mock branches + fixtures out of the production output.
+  const mockFlag =
+    mode === 'production'
+      ? 'false'
+      : (process.env.VITE_FEATURE_MOCK ?? customEnv.VITE_FEATURE_MOCK)
+  if (mockFlag !== undefined) {
+    define['import.meta.env.VITE_FEATURE_MOCK'] = JSON.stringify(mockFlag)
+  }
   const apiProxyTarget = customEnv.VITE_API_PROXY_TARGET?.trim()
 
   return {
