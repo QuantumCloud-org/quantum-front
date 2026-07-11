@@ -1,7 +1,7 @@
 # quantum-front · 技术栈 / 阻碍 / 完善设计
 
-> 2026-07-11 由全景对账产出。配套阅读: [docs/ai/convention-pack/conventions.md](ai/convention-pack/conventions.md)
-> (含会话/导航层 mock 约定 + 验证实体选择原则) · quantum-backend `docs/blockers-and-roadmap.md` (总路线)。
+> 2026-07-11 由全景对账产出。配套阅读: [docs/ai/convention-pack/conventions.md](../../docs/ai/convention-pack/conventions.md)
+> (含会话/导航层 mock 约定 + 验证实体选择原则) · quantum-backend `.ai_state/architecture/blockers-and-roadmap.md` (总路线)。
 
 ## 技术栈
 

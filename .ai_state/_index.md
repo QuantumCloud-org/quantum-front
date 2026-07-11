@@ -104,6 +104,10 @@ fingerprint: ""
   vite.config `VITE_FEATURE_MOCK` 注入) + Convention Pack 增补 (导航层 mock 约定 + 验证实体选择原则)。
   详见 `docs/ai/convention-pack/conventions.md`。
 
+## 架构与路线
+
+- [architecture/blockers-and-roadmap.md](architecture/blockers-and-roadmap.md) — 技术栈 / 阻碍 / 完善设计 (2026-07-11)
+
 ## AI 契约
 
 - Convention Pack: `docs/ai/convention-pack/` (conventions / validate / runtime-env / templates) —
