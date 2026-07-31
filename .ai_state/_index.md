@@ -103,10 +103,15 @@ fingerprint: ""
 - S4 落地的**永久基建** (非 sprint 临时物): 会话/导航层 mock (`src/lib/mock/`, auth/navigation api 短路,
   vite.config `VITE_FEATURE_MOCK` 注入) + Convention Pack 增补 (导航层 mock 约定 + 验证实体选择原则)。
   详见 `docs/ai/convention-pack/conventions.md`。
+- 2026-07-31: 依赖与漏洞审计完成 (`bun audit` 6 项全部定性为 dev/build 期, 生产零抵达;
+  range 内刷新清 2 项, 余 4 项记为已知接受)。同批修掉两个源码缺陷: `ensureRouteAccess`
+  的 fail-open 与上传扩展名校验缺失。详见
+  [architecture/dependency-and-security-audit.md](architecture/dependency-and-security-audit.md)。
 
 ## 架构与路线
 
 - [architecture/blockers-and-roadmap.md](architecture/blockers-and-roadmap.md) — 技术栈 / 阻碍 / 完善设计 (2026-07-11)
+- [architecture/dependency-and-security-audit.md](architecture/dependency-and-security-audit.md) — 依赖与漏洞审计 (2026-07-31)
 
 ## AI 契约
 

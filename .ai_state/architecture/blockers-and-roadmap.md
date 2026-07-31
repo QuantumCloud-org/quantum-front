@@ -1,7 +1,8 @@
 # quantum-front · 技术栈 / 阻碍 / 完善设计
 
 > 2026-07-11 由全景对账产出。配套阅读: [docs/ai/convention-pack/conventions.md](../../docs/ai/convention-pack/conventions.md)
-> (含会话/导航层 mock 约定 + 验证实体选择原则) · quantum-backend `.ai_state/architecture/blockers-and-roadmap.md` (总路线)。
+> (含会话/导航层 mock 约定 + 验证实体选择原则) · [dependency-and-security-audit.md](dependency-and-security-audit.md)
+> (2026-07-31 依赖与漏洞审计) · quantum-backend `.ai_state/architecture/blockers-and-roadmap.md` (总路线)。
 
 ## 技术栈
 
@@ -12,7 +13,7 @@
 | 路由/数据/表格 | TanStack Router (file-based, `_authenticated` 动态路由) / Query / Table |
 | 校验/状态 | zod v4 / zustand (auth-store 等) |
 | UI | shadcn + Radix + lucide-react, Tailwind |
-| 包管理/测试 | bun (`bun test`, 22 tests) |
+| 包管理/测试 | bun (`bun test`, 46 tests @2026-07-31) — 无 DOM, 故仅覆盖 model/fixture 层, 无组件测试 |
 | 网络 | axios 单实例 `apiClient` (`/api` 代理 → BE, Bearer + X-Device-Id 拦截器) |
 | 权限 | 后端菜单驱动 (`/system/menu/getRouters` → page-registry 匹配) + `hasPermission/hasAccess` 守卫 (`<entity>-management-access.ts` 模式) |
 | **mock 基建** (S4 落地, 永久) | `VITE_FEATURE_MOCK=true bun run dev` 短路 auth 会话 + 菜单两个网络出口到 fixtures (`src/lib/mock/`); **生产 build 强制 pin 'false' + 裸内联 DCE, fixtures 零泄漏** (安全硬约定, 见 conventions"生产隔离") |
