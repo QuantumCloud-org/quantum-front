@@ -70,16 +70,42 @@ zod 4.4.3 vs 4.3.6 · tailwind 4.3.3 vs 4.2.2 · react-day-picker 10.0.1 vs 9.14
 | `@faker-js/faker` | 不取 | 本仓已有自建 mock fixtures (`src/lib/mock/`) |
 | prettier `importOrder` 配置 | 不取 | 纯风格, 会在 279 个文件上产生无关 diff |
 
-## 顺带发现 (未处理)
+## 顺带发现 (已处理)
 
-- **产物有 1.5 MB 单块** (`search-provider`, gzip 419 kB)。成因: `nav-group.tsx` 用
-  `lucide-react/dynamic` 的 `DynamicIcon`, 把全套约 1600 个图标拉进主导航路径。
-  后端驱动的菜单图标选择器需要动态图标, 但导航渲染不需要 —— 可改为按 `icon-registry.ts` 收敛。
-- **`format:check` 全仓不过**: 审计前基线即 83 个文件不合规 (prettier 3.8.4), 依赖刷新后
-  86 个 (3.9.6)。属既有欠账, 非本次引入; 本次只格式化了自己改动的文件, 未做全仓 reformat
-  (会淹没 diff)。
+### 首屏预载 1923 KB, 内含 1.5 MB 单块 — 已修
+
+**初次归因错误, 记在这里防止后人重走。** 最初判定成因是 `nav-group.tsx` 的
+`lucide-react/dynamic` `DynamicIcon` 把约 1600 个图标拉进主路径 —— **错的**。
+实测该块内 `dynamicIconImports` 零命中, 且 lucide 的 dynamic 用的是
+`() => import()` 惰性映射, 本来就会被切成单图标小块。按此错误结论做的第一次修复
+(manualChunks 隔离 recharts) 不但没用, 首屏反而涨到 2147 KB, 已回滚。
+
+真实成因: `page-registry.tsx` **静态 import 了全部 11 个功能页**, 而它经
+`search-provider → command-menu → use-navigation → registry.ts` 挂在应用外壳上,
+于是功能页连同 recharts / 表格 / 对话框全被拽进首屏图。router 的
+`autoCodeSplitting` 对此无效 —— 它切的是路由文件, 这些页面走的是注册表解析。
+
+修法: 注册表改 `React.lazy`, 消费端 (`$page.tsx`, 唯一) 加 Suspense 边界;
+元数据 (`backendComponent` / `fullPath`) 保持静态, 故 `registry.ts` 菜单匹配与
+`session-fixtures` 配对校验不受影响。
+
+实测: 首屏预载 1923 → 1159 KB (-40%), preload 条目 72 → 35,
+最大块 1.5 MB → 328 KB 且已移出首屏集合。
+
+> 教训: 判定产物成因必须**查产物本身**的实现标记, 不能从 import 语句推断。
+> `grep` 块内 `dynamicIconImports` / `recharts` 等标记只花几秒, 却直接推翻了错误假设。
+
+### format:check 全仓不过 — 已修
+
+审计前基线即 83 个文件不合规 (prettier 3.8.4), 依赖刷新后 86 个 (3.9.6)。
+已做全仓 `bun run format` 并单独成一个 `style:` commit, 同时新增
+`.git-blame-ignore-revs` 保住 blame 归属。改动纯格式 (来自 `.prettierrc` 里
+声明却从未落实的 `importOrder` + printWidth 换行), 两处副作用 import
+(`main.tsx` 的 index.css、`tanstack-table.d.ts` 的模块增强) 经确认未被重排。
 
 ## 验证
 
-`bun test` 46 pass (审计前 22, 本次新增 24) · `bunx tsc -b --noEmit` · `bun run lint` ·
-`bun run build` 全绿。
+`bun test` 46 pass (审计前 22, 本次新增 24) · `bunx tsc -b --noEmit` ·
+`bun run lint` (0 warning) · `bun run format:check` (全绿) · `bun run build` 全绿。
+懒加载改动另做运行时实跑: mock 模式起 dev server, 页面模块按需 transform 正常,
+转译产物含 11 处 dynamic import。
