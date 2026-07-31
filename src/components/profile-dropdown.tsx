@@ -1,18 +1,11 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import {
-  Check,
-  Laptop,
-  Moon,
-  Settings2,
-  Sun,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { buildNavigationUser } from '@/app/navigation/registry'
+import { Check, Laptop, Moon, Settings2, Sun } from 'lucide-react'
+import { useAuthStore } from '@/stores/auth-store'
+import { cn } from '@/lib/utils'
 import { useTheme } from '@/context/theme-provider'
 import useDialogState from '@/hooks/use-dialog-state'
-import { useAuthStore } from '@/stores/auth-store'
-import { profileDropdownSettingsItems } from '@/components/profile-dropdown-settings-items'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -28,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ConfigDrawer } from '@/components/config-drawer'
+import { profileDropdownSettingsItems } from '@/components/profile-dropdown-settings-items'
 import { SignOutDialog } from '@/components/sign-out-dialog'
 
 export function ProfileDropdown() {

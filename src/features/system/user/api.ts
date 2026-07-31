@@ -1,6 +1,6 @@
 import type { ApiResult } from '@/types/api'
-import { toId, toIdList } from '@/lib/ids'
 import { apiClient } from '@/lib/http'
+import { toId, toIdList } from '@/lib/ids'
 import type {
   DeptTreeNode,
   PagedResult,

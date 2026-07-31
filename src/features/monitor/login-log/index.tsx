@@ -1,28 +1,35 @@
 import { useEffect, useMemo, useState } from 'react'
+import type { AxiosError } from 'axios'
 import {
   keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { getCoreRowModel, type ColumnDef, useReactTable } from '@tanstack/react-table'
-import type { AxiosError } from 'axios'
+import {
+  getCoreRowModel,
+  type ColumnDef,
+  useReactTable,
+} from '@tanstack/react-table'
+import { useAccess } from '@/app/auth/access'
 import { RefreshCw, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useAccess } from '@/app/auth/access'
 import { type NavigateFn, useTableUrlState } from '@/hooks/use-table-url-state'
-import { ConfirmDialog } from '@/components/confirm-dialog'
-import { DataTablePagination, SelectionBulkActions } from '@/components/data-table'
-import { Header } from '@/components/layout/header'
-import { Main } from '@/components/layout/main'
-import { ProfileDropdown } from '@/components/profile-dropdown'
-import { Search } from '@/components/search'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import {
+  DataTablePagination,
+  SelectionBulkActions,
+} from '@/components/data-table'
+import { Header } from '@/components/layout/header'
+import { Main } from '@/components/layout/main'
+import { ProfileDropdown } from '@/components/profile-dropdown'
+import { Search } from '@/components/search'
 import { cleanLoginLog, deleteLoginLogs, fetchLoginLogPage } from './api'
 import {
   LoginLogSearchForm,
@@ -30,10 +37,7 @@ import {
 } from './components/login-log-search-form'
 import { LoginLogTable } from './components/login-log-table'
 import { type LoginLog } from './model'
-import {
-  loginLogSearchSchema,
-  type LoginLogSearchState,
-} from './search-schema'
+import { loginLogSearchSchema, type LoginLogSearchState } from './search-schema'
 
 type Props = {
   search: Record<string, unknown>
@@ -67,14 +71,21 @@ export function LoginLogPage({ search, navigate }: Props) {
       beginTime: parsed.beginTime ?? '',
       endTime: parsed.endTime ?? '',
     })
-  }, [parsed.beginTime, parsed.endTime, parsed.ipaddr, parsed.status, parsed.username])
+  }, [
+    parsed.beginTime,
+    parsed.endTime,
+    parsed.ipaddr,
+    parsed.status,
+    parsed.username,
+  ])
 
-  const { pagination, onPaginationChange, ensurePageInRange } = useTableUrlState({
-    search: parsed,
-    navigate,
-    pagination: { defaultPage: 1, defaultPageSize: 10 },
-    globalFilter: { enabled: false },
-  })
+  const { pagination, onPaginationChange, ensurePageInRange } =
+    useTableUrlState({
+      search: parsed,
+      navigate,
+      pagination: { defaultPage: 1, defaultPageSize: 10 },
+      globalFilter: { enabled: false },
+    })
 
   const query = useMemo(
     () => ({

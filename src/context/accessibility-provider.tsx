@@ -10,7 +10,9 @@ type AccessibilityContextType = {
   resetAccessibility: () => void
 }
 
-const AccessibilityContext = createContext<AccessibilityContextType | null>(null)
+const AccessibilityContext = createContext<AccessibilityContextType | null>(
+  null
+)
 
 export function AccessibilityProvider({
   children,
@@ -33,7 +35,11 @@ export function AccessibilityProvider({
   }, [elderMode])
 
   const setElderMode = (enabled: boolean) => {
-    setCookie(ELDER_MODE_COOKIE_NAME, String(enabled), ELDER_MODE_COOKIE_MAX_AGE)
+    setCookie(
+      ELDER_MODE_COOKIE_NAME,
+      String(enabled),
+      ELDER_MODE_COOKIE_MAX_AGE
+    )
     _setElderMode(enabled)
   }
 

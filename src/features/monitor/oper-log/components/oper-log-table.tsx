@@ -34,8 +34,7 @@ export function OperLogTable({
   onToggleSelect,
   onShowDetail,
 }: Props) {
-  const allSelected =
-    records.length > 0 && selectedIds.size === records.length
+  const allSelected = records.length > 0 && selectedIds.size === records.length
   const someSelected = selectedIds.size > 0 && selectedIds.size < records.length
 
   return (
@@ -68,7 +67,10 @@ export function OperLogTable({
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={allowSelection ? 11 : 10} className='text-center text-sm'>
+              <TableCell
+                colSpan={allowSelection ? 11 : 10}
+                className='text-center text-sm'
+              >
                 加载中...
               </TableCell>
             </TableRow>

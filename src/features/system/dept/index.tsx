@@ -5,17 +5,12 @@ import { AxiosError } from 'axios'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { ApiResult } from '@/types/api'
 import { FolderPlus, Save, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import type { ApiResult } from '@/types/api'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Form,
   FormControl,
@@ -33,7 +28,6 @@ import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { SelectDropdown } from '@/components/select-dropdown'
-import { DeptParentPicker } from './components/dept-parent-picker'
 import {
   createDept,
   deleteDept,
@@ -41,6 +35,7 @@ import {
   fetchDeptDetail,
   updateDept,
 } from './api'
+import { DeptParentPicker } from './components/dept-parent-picker'
 import {
   deptFormSchema,
   extractDeptServerErrors,
@@ -72,9 +67,7 @@ function RequiredFormLabel({ children }: { children: string }) {
 export function DepartmentManagementPage() {
   const queryClient = useQueryClient()
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null)
-  const [expandedDeptIds, setExpandedDeptIds] = useState<Set<string>>(
-    new Set()
-  )
+  const [expandedDeptIds, setExpandedDeptIds] = useState<Set<string>>(new Set())
   const [collapsedDeptIds, setCollapsedDeptIds] = useState<Set<string>>(
     new Set()
   )
@@ -127,7 +120,9 @@ export function DepartmentManagementPage() {
       return
     }
 
-    form.reset(buildDeptFormDefaults(deptDetailQuery.data, selectedDept?.parentId))
+    form.reset(
+      buildDeptFormDefaults(deptDetailQuery.data, selectedDept?.parentId)
+    )
   }, [deptDetailQuery.data, form, isCreating, selectedDept?.parentId])
 
   const createMutation = useMutation({
@@ -182,7 +177,8 @@ export function DepartmentManagementPage() {
       ? collectDeptBranchIds(deptTree, resolvedSelectedDeptId)
       : new Set<string>()
 
-  const selectedParentDeptId = selectedDept?.deptId ?? resolvedSelectedDeptId ?? '0'
+  const selectedParentDeptId =
+    selectedDept?.deptId ?? resolvedSelectedDeptId ?? '0'
   const createParentId =
     parentIdValue || draftParentDeptId || resolvedSelectedDeptId || '0'
   const defaultExpandedDeptIds = createDefaultExpandedDeptIds(deptTree)
@@ -199,7 +195,8 @@ export function DepartmentManagementPage() {
 
   function handleSaveError(error: unknown) {
     if (error instanceof AxiosError) {
-      const responseData = error.response?.data as ApiResult<unknown> | undefined
+      const responseData = error.response?.data as
+        ApiResult<unknown> | undefined
       const { fieldErrors, generalErrors } = extractDeptServerErrors(
         responseData?.message
       )
@@ -295,7 +292,9 @@ export function DepartmentManagementPage() {
     setIsCreating(false)
 
     if (deptDetailQuery.data) {
-      form.reset(buildDeptFormDefaults(deptDetailQuery.data, selectedDept?.parentId))
+      form.reset(
+        buildDeptFormDefaults(deptDetailQuery.data, selectedDept?.parentId)
+      )
       return
     }
 
@@ -464,7 +463,6 @@ export function DepartmentManagementPage() {
                 </div>
               ) : (
                 <>
-
                   <Form {...form}>
                     <form
                       id='dept-form'
@@ -624,7 +622,7 @@ export function DepartmentManagementPage() {
                         <p
                           className={cn(
                             'min-h-4 text-right text-xs text-destructive',
-                            !submitError && 'select-none text-transparent'
+                            !submitError && 'text-transparent select-none'
                           )}
                         >
                           {submitError || '\u00A0'}

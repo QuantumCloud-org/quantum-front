@@ -199,7 +199,11 @@ function normalizeKeyword(value: string) {
   return value.trim().toLowerCase()
 }
 
-export function MenuIconPicker({ value, onChange, disabled }: MenuIconPickerProps) {
+export function MenuIconPicker({
+  value,
+  onChange,
+  disabled,
+}: MenuIconPickerProps) {
   const [open, setOpen] = useState(false)
   const [keyword, setKeyword] = useState('')
   const normalizedKeyword = normalizeKeyword(keyword)
@@ -308,13 +312,15 @@ export function MenuIconPicker({ value, onChange, disabled }: MenuIconPickerProp
                     }}
                   >
                     <DynamicIcon name={item.name} className='size-4 shrink-0' />
-                    <span className='line-clamp-1 text-[11px]'>{item.label}</span>
+                    <span className='line-clamp-1 text-[11px]'>
+                      {item.label}
+                    </span>
                     <span className='line-clamp-1 text-[10px] text-muted-foreground'>
                       {item.name}
                     </span>
                   </button>
-                )}
-              )}
+                )
+              })}
             </div>
           ) : (
             <div className='flex h-24 items-center justify-center text-sm text-muted-foreground'>

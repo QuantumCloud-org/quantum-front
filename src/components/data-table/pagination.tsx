@@ -55,11 +55,13 @@ export function DataTablePagination<TData>({
               <SelectValue placeholder={`${currentPageSize} 条`} />
             </SelectTrigger>
             <SelectContent side='top'>
-              {[10, 20, 30, 40, 50, 100, 200, 500, 1000, 2000].map((pageSize) => (
-                <SelectItem key={pageSize} value={`${pageSize}`}>
-                  {pageSize} 条
-                </SelectItem>
-              ))}
+              {[10, 20, 30, 40, 50, 100, 200, 500, 1000, 2000].map(
+                (pageSize) => (
+                  <SelectItem key={pageSize} value={`${pageSize}`}>
+                    {pageSize} 条
+                  </SelectItem>
+                )
+              )}
             </SelectContent>
           </Select>
           <span className='text-foreground'>共 {totalRows} 条</span>

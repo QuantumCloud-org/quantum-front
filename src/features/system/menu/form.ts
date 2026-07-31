@@ -24,18 +24,9 @@ export const menuFormSchema = z
       .refine((value) => /^\d+$/.test(value), {
         message: '显示顺序必须为非负整数。',
       }),
-    path: z
-      .string()
-      .trim()
-      .max(200, '路由地址长度不能超过 200 个字符。'),
-    component: z
-      .string()
-      .trim()
-      .max(200, '组件路径长度不能超过 200 个字符。'),
-    queryParam: z
-      .string()
-      .trim()
-      .max(200, '路由参数长度不能超过 200 个字符。'),
+    path: z.string().trim().max(200, '路由地址长度不能超过 200 个字符。'),
+    component: z.string().trim().max(200, '组件路径长度不能超过 200 个字符。'),
+    queryParam: z.string().trim().max(200, '路由参数长度不能超过 200 个字符。'),
     isFrame: z.string().refine(isAllowedFlag, {
       message: '请选择是否外链。',
     }),
@@ -45,21 +36,12 @@ export const menuFormSchema = z
     visible: z.string().refine(isAllowedFlag, {
       message: '请选择显示状态。',
     }),
-    perms: z
-      .string()
-      .trim()
-      .max(100, '权限标识长度不能超过 100 个字符。'),
-    icon: z
-      .string()
-      .trim()
-      .max(100, '图标标识长度不能超过 100 个字符。'),
+    perms: z.string().trim().max(100, '权限标识长度不能超过 100 个字符。'),
+    icon: z.string().trim().max(100, '图标标识长度不能超过 100 个字符。'),
     status: z.string().refine(isAllowedFlag, {
       message: '请选择菜单状态。',
     }),
-    remark: z
-      .string()
-      .trim()
-      .max(500, '备注长度不能超过 500 个字符。'),
+    remark: z.string().trim().max(500, '备注长度不能超过 500 个字符。'),
   })
   .superRefine((value, ctx) => {
     if ((value.menuType === 'M' || value.menuType === 'C') && !value.path) {

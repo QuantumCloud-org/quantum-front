@@ -3,12 +3,12 @@ import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
-import { Loader2, LogIn } from 'lucide-react'
-import { handleServerError } from '@/lib/handle-server-error'
-import { cn } from '@/lib/utils'
 import { fetchCaptcha } from '@/app/auth/api'
 import { loginWithPassword } from '@/app/auth/session'
 import type { CaptchaPayload } from '@/types/auth'
+import { Loader2, LogIn } from 'lucide-react'
+import { handleServerError } from '@/lib/handle-server-error'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -28,7 +28,10 @@ const formSchema = z.object({
     .trim()
     .min(1, '请输入用户名')
     .max(50, '用户名长度不能超过 50 个字符'),
-  password: z.string().min(1, '请输入密码').max(100, '密码长度不能超过 100 个字符'),
+  password: z
+    .string()
+    .min(1, '请输入密码')
+    .max(100, '密码长度不能超过 100 个字符'),
   captchaCode: z
     .string()
     .trim()
@@ -142,7 +145,11 @@ export function UserAuthForm({
             <FormItem>
               <FormLabel>用户名</FormLabel>
               <FormControl>
-                <Input placeholder='请输入用户名' autoComplete='username' {...field} />
+                <Input
+                  placeholder='请输入用户名'
+                  autoComplete='username'
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -209,7 +216,9 @@ export function UserAuthForm({
                     className='h-full w-full object-cover'
                   />
                 ) : (
-                  <span className='text-xs text-muted-foreground'>验证码加载失败</span>
+                  <span className='text-xs text-muted-foreground'>
+                    验证码加载失败
+                  </span>
                 )}
               </div>
             </button>

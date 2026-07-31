@@ -209,7 +209,7 @@ export function TreeView({
   toggleOnSelect = false,
 }: TreeViewProps) {
   return (
-    <div className={cn('min-w-full w-max space-y-0.5', className)}>
+    <div className={cn('w-max min-w-full space-y-0.5', className)}>
       {data.map((item) => (
         <InternalTreeItem
           key={item.id}

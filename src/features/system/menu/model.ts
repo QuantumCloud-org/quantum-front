@@ -153,7 +153,11 @@ export function filterMenuTree(
   }
 
   return nodes.flatMap((node) => {
-    const children = filterMenuTree(node.children ?? [], normalizedKeyword, typeFilter)
+    const children = filterMenuTree(
+      node.children ?? [],
+      normalizedKeyword,
+      typeFilter
+    )
     const isKeywordMatch =
       !normalizedKeyword ||
       node.menuName.toLowerCase().includes(normalizedKeyword)
@@ -266,7 +270,9 @@ export function ensureMenuPathExpanded(
   }
 
   const next = new Set(expandedIds)
-  collectMenuAncestorIds(nodes, targetMenuId).forEach((menuId) => next.add(menuId))
+  collectMenuAncestorIds(nodes, targetMenuId).forEach((menuId) =>
+    next.add(menuId)
+  )
   return next
 }
 

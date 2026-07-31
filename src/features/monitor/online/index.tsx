@@ -1,15 +1,10 @@
 import { useDeferredValue, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useAccess } from '@/app/auth/access'
+import type { ApiResult } from '@/types/api'
 import { Building2, Monitor, RefreshCw, Trash2, Users } from 'lucide-react'
 import { toast } from 'sonner'
-import { useAccess } from '@/app/auth/access'
-import { ConfirmDialog } from '@/components/confirm-dialog'
-import { SelectionBulkActions } from '@/components/data-table'
-import { Header } from '@/components/layout/header'
-import { Main } from '@/components/layout/main'
-import { ProfileDropdown } from '@/components/profile-dropdown'
-import { Search } from '@/components/search'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -29,7 +24,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { ApiResult } from '@/types/api'
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import { SelectionBulkActions } from '@/components/data-table'
+import { Header } from '@/components/layout/header'
+import { Main } from '@/components/layout/main'
+import { ProfileDropdown } from '@/components/profile-dropdown'
+import { Search } from '@/components/search'
 import { fetchOnlineUsers, forceLogoutByTokenId } from './api'
 import {
   buildOnlineOverview,
@@ -43,7 +43,8 @@ import {
 
 function getErrorMessage(error: unknown, fallback: string) {
   return (
-    (error as AxiosError<ApiResult<unknown>>)?.response?.data?.message ?? fallback
+    (error as AxiosError<ApiResult<unknown>>)?.response?.data?.message ??
+    fallback
   )
 }
 
@@ -88,7 +89,9 @@ export function OnlineUserPage() {
     defaultOnlineUserFilters
   )
   const deferredFilters = useDeferredValue(filters)
-  const [selectedTokenIds, setSelectedTokenIds] = useState<Set<string>>(new Set())
+  const [selectedTokenIds, setSelectedTokenIds] = useState<Set<string>>(
+    new Set()
+  )
   const [logoutTarget, setLogoutTarget] = useState<OnlineUser | null>(null)
   const [bulkLogoutOpen, setBulkLogoutOpen] = useState(false)
 
@@ -99,7 +102,9 @@ export function OnlineUserPage() {
 
   const logoutMutation = useMutation({
     mutationFn: async (tokenIds: string[]) => {
-      await Promise.all(tokenIds.map((tokenId) => forceLogoutByTokenId(tokenId)))
+      await Promise.all(
+        tokenIds.map((tokenId) => forceLogoutByTokenId(tokenId))
+      )
     },
     onSuccess: async (_, tokenIds) => {
       toast.success(
@@ -228,7 +233,9 @@ export function OnlineUserPage() {
             title='主力系统'
             value={overview.topOs?.label ?? '-'}
             description={
-              overview.topOs ? `共 ${overview.topOs.value} 个会话` : '暂无系统信息'
+              overview.topOs
+                ? `共 ${overview.topOs.value} 个会话`
+                : '暂无系统信息'
             }
             icon={Users}
           />
@@ -286,7 +293,9 @@ export function OnlineUserPage() {
                 />
                 <Input
                   value={filters.device}
-                  onChange={(event) => updateFilter('device', event.target.value)}
+                  onChange={(event) =>
+                    updateFilter('device', event.target.value)
+                  }
                   placeholder='按设备检索...'
                   className='h-8 w-[150px] lg:w-[180px]'
                 />
@@ -311,8 +320,12 @@ export function OnlineUserPage() {
                     {canForceLogout ? (
                       <TableHead className='w-10'>
                         <Checkbox
-                          checked={allSelected || (someSelected && 'indeterminate')}
-                          onCheckedChange={(value) => toggleSelectAll(Boolean(value))}
+                          checked={
+                            allSelected || (someSelected && 'indeterminate')
+                          }
+                          onCheckedChange={(value) =>
+                            toggleSelectAll(Boolean(value))
+                          }
                           aria-label='全选当前在线会话'
                           className='translate-y-[2px]'
                         />
@@ -343,7 +356,9 @@ export function OnlineUserPage() {
                         colSpan={canForceLogout ? 8 : 7}
                         className='text-center text-sm text-muted-foreground'
                       >
-                        {hasFilters ? '当前筛选条件暂无在线会话' : '暂无在线会话'}
+                        {hasFilters
+                          ? '当前筛选条件暂无在线会话'
+                          : '暂无在线会话'}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -361,7 +376,9 @@ export function OnlineUserPage() {
                         ) : null}
                         <TableCell>
                           <div className='space-y-1'>
-                            <div className='font-medium'>{user.username || '-'}</div>
+                            <div className='font-medium'>
+                              {user.username || '-'}
+                            </div>
                             <div className='text-xs text-muted-foreground'>
                               {user.nickname || '未设置昵称'}
                             </div>
@@ -405,7 +422,9 @@ export function OnlineUserPage() {
                               强退
                             </Button>
                           ) : (
-                            <span className='text-xs text-muted-foreground'>无权限</span>
+                            <span className='text-xs text-muted-foreground'>
+                              无权限
+                            </span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -446,7 +465,8 @@ export function OnlineUserPage() {
           logoutTarget ? (
             <div className='space-y-2 text-sm'>
               <p>
-                将立即终止 <span className='font-medium'>{logoutTarget.username}</span>{' '}
+                将立即终止{' '}
+                <span className='font-medium'>{logoutTarget.username}</span>{' '}
                 当前选中的登录会话。
               </p>
               <p className='text-muted-foreground'>

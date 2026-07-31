@@ -1,7 +1,7 @@
 import { isAxiosError } from 'axios'
+import type { AuthUser, LoginCommand } from '@/types/auth'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
-import type { AuthUser, LoginCommand } from '@/types/auth'
 import { fetchCurrentUser, loginByPassword, logoutCurrentUser } from './api'
 
 let bootstrapPromise: Promise<AuthUser | null> | null = null

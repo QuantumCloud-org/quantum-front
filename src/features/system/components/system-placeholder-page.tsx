@@ -7,11 +7,11 @@ import {
   ShieldCheck,
   Users,
 } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 const placeholderIconMap: Record<string, LucideIcon> = {
   role: ShieldCheck,
@@ -72,10 +72,14 @@ export function SystemPlaceholderPage({
             <div className='rounded-lg border bg-muted/30 p-4'>
               <p className='font-medium'>当前映射</p>
               <p className='mt-2 text-muted-foreground'>
-                路由地址：<span className='font-mono text-foreground'>{routePath}</span>
+                路由地址：
+                <span className='font-mono text-foreground'>{routePath}</span>
               </p>
               <p className='mt-1 text-muted-foreground'>
-                后端组件：<span className='font-mono text-foreground'>{backendComponent}</span>
+                后端组件：
+                <span className='font-mono text-foreground'>
+                  {backendComponent}
+                </span>
               </p>
             </div>
             <div className='rounded-lg border bg-background p-4'>
@@ -84,7 +88,9 @@ export function SystemPlaceholderPage({
                 1. 接对应接口与权限码
               </p>
               <p className='text-muted-foreground'>2. 落列表页与查询条件</p>
-              <p className='text-muted-foreground'>3. 补新增、编辑、删除等操作弹层</p>
+              <p className='text-muted-foreground'>
+                3. 补新增、编辑、删除等操作弹层
+              </p>
             </div>
           </CardContent>
         </Card>

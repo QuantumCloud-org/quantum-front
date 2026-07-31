@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
-import { ConfirmDialog } from '@/components/confirm-dialog'
 import { handleServerError } from '@/lib/handle-server-error'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { changeRoleStatus } from '../api'
 import { type Role } from '../model'
 

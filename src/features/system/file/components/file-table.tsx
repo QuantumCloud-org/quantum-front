@@ -1,9 +1,4 @@
-import {
-  Download as DownloadIcon,
-  Eye,
-  FileIcon,
-  Trash2,
-} from 'lucide-react'
+import { Download as DownloadIcon, Eye, FileIcon, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -59,8 +54,7 @@ export function FileTable({
   onDownload,
   onDelete,
 }: Props) {
-  const allSelected =
-    records.length > 0 && selectedIds.size === records.length
+  const allSelected = records.length > 0 && selectedIds.size === records.length
   const someSelected = selectedIds.size > 0 && selectedIds.size < records.length
 
   return (
@@ -89,7 +83,10 @@ export function FileTable({
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={allowSelection ? 7 : 6} className='text-center text-sm'>
+              <TableCell
+                colSpan={allowSelection ? 7 : 6}
+                className='text-center text-sm'
+              >
                 加载中...
               </TableCell>
             </TableRow>

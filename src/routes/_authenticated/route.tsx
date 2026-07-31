@@ -2,8 +2,8 @@ import { isAxiosError } from 'axios'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { bootstrapAuthSession } from '@/app/auth/session'
 import { navigationQueryOptions } from '@/app/navigation/api'
-import { AuthenticatedLayout } from '@/components/layout/authenticated-layout'
 import { useAuthStore } from '@/stores/auth-store'
+import { AuthenticatedLayout } from '@/components/layout/authenticated-layout'
 
 function getErrorMessage(error: unknown) {
   if (!isAxiosError(error)) {

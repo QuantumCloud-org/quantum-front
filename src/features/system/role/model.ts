@@ -83,7 +83,6 @@ function toBackendStatus(status?: RoleStatusFilter) {
   return undefined
 }
 
-
 export function buildRoleListQuery(
   search: Partial<RoleManagementSearch>
 ): RoleListQuery {

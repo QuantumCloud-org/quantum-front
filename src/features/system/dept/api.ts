@@ -1,8 +1,16 @@
-import type { ApiResult } from '@/types/api';
+import type { ApiResult } from '@/types/api'
+import { apiClient } from '@/lib/http'
 import { toId } from '@/lib/ids'
-import { apiClient } from '@/lib/http';
-import { buildDeptCreatePayload, buildDeptListQuery, buildDeptUpdatePayload, dedupeDeptTreeRoots, type DeptDetail, type DeptFormInput, type DeptListSearch, type DeptTreeNode } from './model';
-
+import {
+  buildDeptCreatePayload,
+  buildDeptListQuery,
+  buildDeptUpdatePayload,
+  dedupeDeptTreeRoots,
+  type DeptDetail,
+  type DeptFormInput,
+  type DeptListSearch,
+  type DeptTreeNode,
+} from './model'
 
 function unwrapResult<T>(result: ApiResult<T>) {
   return result.data
@@ -49,7 +57,9 @@ export async function fetchDeptList(search?: Partial<DeptListSearch>) {
     }
   )
 
-  return dedupeDeptTreeRoots(unwrapResult(response.data).map(normalizeDeptTreeNode))
+  return dedupeDeptTreeRoots(
+    unwrapResult(response.data).map(normalizeDeptTreeNode)
+  )
 }
 
 export async function fetchDeptDetail(deptId: string) {

@@ -12,12 +12,16 @@ function unwrapResult<T>(result: ApiResult<T>) {
 }
 
 export async function fetchCacheStats(): Promise<CacheStat[]> {
-  const response = await apiClient.get<ApiResult<unknown[]>>('/monitor/cache/list')
+  const response = await apiClient.get<ApiResult<unknown[]>>(
+    '/monitor/cache/list'
+  )
   const records = unwrapResult(response.data)
   return Array.isArray(records) ? records.map(normalizeCacheStat) : []
 }
 
-export async function fetchCacheDetail(cacheName: string): Promise<CacheDetail> {
+export async function fetchCacheDetail(
+  cacheName: string
+): Promise<CacheDetail> {
   const response = await apiClient.get<ApiResult<unknown>>(
     `/monitor/cache/${encodeURIComponent(cacheName)}`
   )

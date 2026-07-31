@@ -7,11 +7,15 @@ function unwrapResult<T>(result: ApiResult<T>) {
 }
 
 export async function fetchOnlineUsers(): Promise<OnlineUser[]> {
-  const response = await apiClient.get<ApiResult<unknown[]>>('/monitor/online/list')
+  const response = await apiClient.get<ApiResult<unknown[]>>(
+    '/monitor/online/list'
+  )
   const records = unwrapResult(response.data)
   return Array.isArray(records) ? records.map(normalizeOnlineUser) : []
 }
 
 export async function forceLogoutByTokenId(tokenId: string): Promise<void> {
-  await apiClient.delete<ApiResult<null>>(`/monitor/online/${encodeURIComponent(tokenId)}`)
+  await apiClient.delete<ApiResult<null>>(
+    `/monitor/online/${encodeURIComponent(tokenId)}`
+  )
 }

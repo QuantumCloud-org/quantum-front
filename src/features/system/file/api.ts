@@ -99,9 +99,8 @@ export async function fetchBlob(
   id: string,
   endpoint: 'download' | 'preview' = 'download'
 ): Promise<Blob> {
-  const response = await apiClient.get<Blob>(
-    `/system/file/${endpoint}/${id}`,
-    { responseType: 'blob' }
-  )
+  const response = await apiClient.get<Blob>(`/system/file/${endpoint}/${id}`, {
+    responseType: 'blob',
+  })
   return response.data
 }

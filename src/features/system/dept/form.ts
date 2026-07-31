@@ -36,7 +36,10 @@ export const deptFormSchema = z.object({
   email: z
     .string()
     .trim()
-    .refine((value) => value === '' || emailPattern.test(value), '邮箱格式不正确。'),
+    .refine(
+      (value) => value === '' || emailPattern.test(value),
+      '邮箱格式不正确。'
+    ),
   status: z.string().refine(isAllowedStatus, {
     message: '请选择部门状态。',
   }),

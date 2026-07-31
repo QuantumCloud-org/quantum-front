@@ -1,9 +1,12 @@
-import { LayoutDashboard } from 'lucide-react'
 import { hasAccess } from '@/app/auth/access'
 import type { AuthUser } from '@/types/auth'
+import { LayoutDashboard } from 'lucide-react'
 import type { NavGroup, NavItem, NavLink } from '@/components/layout/types'
 import { normalizeBackendIconName } from './icon-registry'
-import { getBackendPageByComponent, getBackendPageByPath } from './page-registry'
+import {
+  getBackendPageByComponent,
+  getBackendPageByPath,
+} from './page-registry'
 import type { BackendMenuRouter, BreadcrumbConfig } from './types'
 
 const DEFAULT_AVATAR = '/avatars/01.png'
@@ -28,7 +31,9 @@ function normalizePath(pathname: string) {
 
 function joinBackendPath(parentPath: string, currentPath: string) {
   const normalizedParentPath = normalizePath(parentPath)
-  const normalizedCurrentPath = currentPath.replace(/^\/+/, '').replace(/\/+$/, '')
+  const normalizedCurrentPath = currentPath
+    .replace(/^\/+/, '')
+    .replace(/\/+$/, '')
 
   if (!normalizedCurrentPath || normalizedCurrentPath === '.') {
     return normalizedParentPath

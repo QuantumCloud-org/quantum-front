@@ -368,7 +368,7 @@ export function RolesActionDialog({
                     />
                   </TabsContent>
 
-                  <TabsContent value='data-scope' className='pt-2 space-y-3'>
+                  <TabsContent value='data-scope' className='space-y-3 pt-2'>
                     <FormField
                       control={form.control}
                       name='dataScope'
@@ -439,10 +439,7 @@ export function RolesActionDialog({
             type='submit'
             form='role-form'
             disabled={
-              isSaving ||
-              isEditDataLoading ||
-              hasLoadError ||
-              hasDeptScopeError
+              isSaving || isEditDataLoading || hasLoadError || hasDeptScopeError
             }
           >
             保存

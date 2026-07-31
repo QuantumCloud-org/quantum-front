@@ -1,9 +1,9 @@
+import type { BackendMenuRouter } from '@/app/navigation/types'
 import { describe, expect, spyOn, test } from 'bun:test'
 import {
   findUnpairedRouteComponents,
   warnOnUnpairedMockRoutes,
 } from './session-fixtures'
-import type { BackendMenuRouter } from '@/app/navigation/types'
 
 // Pure orphan-detection logic (the core of the F2 pairing-contract guard):
 // nested tree traversal + a "is this component registered" predicate.

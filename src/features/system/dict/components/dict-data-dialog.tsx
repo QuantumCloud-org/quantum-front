@@ -1,20 +1,9 @@
 import { useEffect, useState } from 'react'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { AxiosError } from 'axios'
 import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import type { ApiResult } from '@/types/api'
 import { cn } from '@/lib/utils'
-import {
-  dictDataFormSchema,
-  extractDictDataServerErrors,
-  type DictDataForm,
-  type DictDataFormValues,
-} from '../form'
-import {
-  buildDictDataFormDefaults,
-  type DictData,
-  type DictDataFormInput,
-} from '../model'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -35,6 +24,17 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { SelectDropdown } from '@/components/select-dropdown'
+import {
+  dictDataFormSchema,
+  extractDictDataServerErrors,
+  type DictDataForm,
+  type DictDataFormValues,
+} from '../form'
+import {
+  buildDictDataFormDefaults,
+  type DictData,
+  type DictDataFormInput,
+} from '../model'
 
 type DictDataDialogProps = {
   open: boolean
@@ -83,7 +83,8 @@ export function DictDataDialog({
       if (error instanceof AxiosError) {
         const message = (error.response?.data as ApiResult<unknown> | undefined)
           ?.message
-        const { fieldErrors, generalErrors } = extractDictDataServerErrors(message)
+        const { fieldErrors, generalErrors } =
+          extractDictDataServerErrors(message)
 
         let hasFieldError = false
         for (const [field, fieldMessage] of Object.entries(fieldErrors)) {
@@ -129,7 +130,8 @@ export function DictDataDialog({
         <DialogHeader>
           <DialogTitle>{isEditing ? '编辑字典项' : '新增字典项'}</DialogTitle>
           <DialogDescription>
-            当前分组：<span className='font-medium text-foreground'>{dictType}</span>
+            当前分组：
+            <span className='font-medium text-foreground'>{dictType}</span>
           </DialogDescription>
         </DialogHeader>
 
@@ -147,7 +149,11 @@ export function DictDataDialog({
                   <FormItem>
                     <RequiredFormLabel>字典名称</RequiredFormLabel>
                     <FormControl>
-                      <Input placeholder='例如：人工智能' disabled={isSaving} {...field} />
+                      <Input
+                        placeholder='例如：人工智能'
+                        disabled={isSaving}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -161,7 +167,11 @@ export function DictDataDialog({
                   <FormItem>
                     <RequiredFormLabel>字典编码</RequiredFormLabel>
                     <FormControl>
-                      <Input placeholder='例如：ai' disabled={isSaving} {...field} />
+                      <Input
+                        placeholder='例如：ai'
+                        disabled={isSaving}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -175,7 +185,12 @@ export function DictDataDialog({
                   <FormItem>
                     <RequiredFormLabel>排序</RequiredFormLabel>
                     <FormControl>
-                      <Input inputMode='numeric' placeholder='0' disabled={isSaving} {...field} />
+                      <Input
+                        inputMode='numeric'
+                        placeholder='0'
+                        disabled={isSaving}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -233,7 +248,11 @@ export function DictDataDialog({
                   <FormItem>
                     <FormLabel>标签样式</FormLabel>
                     <FormControl>
-                      <Input placeholder='例如：primary' disabled={isSaving} {...field} />
+                      <Input
+                        placeholder='例如：primary'
+                        disabled={isSaving}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -247,7 +266,11 @@ export function DictDataDialog({
                   <FormItem>
                     <FormLabel>列表样式</FormLabel>
                     <FormControl>
-                      <Input placeholder='例如：success' disabled={isSaving} {...field} />
+                      <Input
+                        placeholder='例如：success'
+                        disabled={isSaving}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -262,7 +285,12 @@ export function DictDataDialog({
                 <FormItem>
                   <FormLabel>备注</FormLabel>
                   <FormControl>
-                    <Textarea rows={4} placeholder='补充说明' disabled={isSaving} {...field} />
+                    <Textarea
+                      rows={4}
+                      placeholder='补充说明'
+                      disabled={isSaving}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -272,7 +300,7 @@ export function DictDataDialog({
             <p
               className={cn(
                 'min-h-4 text-right text-xs text-destructive',
-                !submitError && 'select-none text-transparent'
+                !submitError && 'text-transparent select-none'
               )}
             >
               {submitError || '\u00A0'}

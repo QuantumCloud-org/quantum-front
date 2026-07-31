@@ -17,13 +17,7 @@ type Props = {
   onOpenChange: (open: boolean) => void
 }
 
-function Field({
-  label,
-  value,
-}: {
-  label: string
-  value: React.ReactNode
-}) {
+function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className='grid grid-cols-3 gap-3 text-sm'>
       <span className='text-muted-foreground'>{label}</span>
@@ -62,9 +56,7 @@ export function OperLogDetailDrawer({ log, open, onOpenChange }: Props) {
               <Field
                 label='状态'
                 value={
-                  <Badge
-                    variant={log.status === 0 ? 'default' : 'destructive'}
-                  >
+                  <Badge variant={log.status === 0 ? 'default' : 'destructive'}>
                     {log.status === 0 ? '正常' : '异常'}
                   </Badge>
                 }
@@ -81,14 +73,14 @@ export function OperLogDetailDrawer({ log, open, onOpenChange }: Props) {
 
               <div className='text-sm'>
                 <div className='mb-1 text-muted-foreground'>请求参数</div>
-                <pre className='max-h-60 overflow-auto rounded bg-muted p-2 text-xs whitespace-pre-wrap break-all'>
+                <pre className='max-h-60 overflow-auto rounded bg-muted p-2 text-xs break-all whitespace-pre-wrap'>
                   {tryFormatJson(log.operParam) || '(空)'}
                 </pre>
               </div>
 
               <div className='text-sm'>
                 <div className='mb-1 text-muted-foreground'>响应结果</div>
-                <pre className='max-h-60 overflow-auto rounded bg-muted p-2 text-xs whitespace-pre-wrap break-all'>
+                <pre className='max-h-60 overflow-auto rounded bg-muted p-2 text-xs break-all whitespace-pre-wrap'>
                   {tryFormatJson(log.jsonResult) || '(空)'}
                 </pre>
               </div>
@@ -96,7 +88,7 @@ export function OperLogDetailDrawer({ log, open, onOpenChange }: Props) {
               {log.errorMsg ? (
                 <div className='text-sm'>
                   <div className='mb-1 text-destructive'>错误信息</div>
-                  <pre className='max-h-40 overflow-auto rounded border border-destructive/30 bg-destructive/5 p-2 text-xs whitespace-pre-wrap break-all'>
+                  <pre className='max-h-40 overflow-auto rounded border border-destructive/30 bg-destructive/5 p-2 text-xs break-all whitespace-pre-wrap'>
                     {log.errorMsg}
                   </pre>
                 </div>

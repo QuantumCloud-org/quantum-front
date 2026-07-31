@@ -1,6 +1,7 @@
 import { startTransition, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
+import { useQuery } from '@tanstack/react-query'
+import type { ApiResult } from '@/types/api'
 import { Database, RefreshCw, Server, ShieldCheck } from 'lucide-react'
 import {
   Bar,
@@ -11,10 +12,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { Header } from '@/components/layout/header'
-import { Main } from '@/components/layout/main'
-import { ProfileDropdown } from '@/components/profile-dropdown'
-import { Search } from '@/components/search'
+import { cn } from '@/lib/utils'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -33,22 +31,23 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { cn } from '@/lib/utils'
-import type { ApiResult } from '@/types/api'
+import { Header } from '@/components/layout/header'
+import { Main } from '@/components/layout/main'
+import { ProfileDropdown } from '@/components/profile-dropdown'
+import { Search } from '@/components/search'
 import { fetchCacheDetail, fetchCacheStats } from './api'
-import {
-  buildCacheOverview,
-  parseHitRate,
-  type CacheStat,
-} from './model'
+import { buildCacheOverview, parseHitRate, type CacheStat } from './model'
 
 function getErrorMessage(error: unknown, fallback: string) {
   return (
-    (error as AxiosError<ApiResult<unknown>>)?.response?.data?.message ?? fallback
+    (error as AxiosError<ApiResult<unknown>>)?.response?.data?.message ??
+    fallback
   )
 }
 
-function getHitRateVariant(hitRate: number): 'default' | 'secondary' | 'destructive' {
+function getHitRateVariant(
+  hitRate: number
+): 'default' | 'secondary' | 'destructive' {
   if (hitRate >= 85) return 'default'
   if (hitRate >= 60) return 'secondary'
   return 'destructive'
@@ -228,7 +227,11 @@ export function CacheMonitorPage() {
                         domain={[0, 100]}
                       />
                       <ChartTooltip formatter={(value) => `${value}%`} />
-                      <Bar dataKey='hitRate' fill='currentColor' radius={[6, 6, 0, 0]} />
+                      <Bar
+                        dataKey='hitRate'
+                        fill='currentColor'
+                        radius={[6, 6, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -246,7 +249,7 @@ export function CacheMonitorPage() {
             <CardContent className='grid gap-4 pt-6 sm:grid-cols-2'>
               <div className='rounded-lg border bg-muted/20 p-4'>
                 <div className='text-sm text-muted-foreground'>缓存名称</div>
-                <div className='mt-1 break-all font-medium'>
+                <div className='mt-1 font-medium break-all'>
                   {activeDetail?.name || currentCacheName || '-'}
                 </div>
               </div>
@@ -321,13 +324,19 @@ export function CacheMonitorPage() {
                 <TableBody>
                   {cacheListQuery.isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className='text-center text-sm text-muted-foreground'>
+                      <TableCell
+                        colSpan={6}
+                        className='text-center text-sm text-muted-foreground'
+                      >
                         缓存统计加载中...
                       </TableCell>
                     </TableRow>
                   ) : stats.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className='text-center text-sm text-muted-foreground'>
+                      <TableCell
+                        colSpan={6}
+                        className='text-center text-sm text-muted-foreground'
+                      >
                         暂无缓存统计
                       </TableCell>
                     </TableRow>

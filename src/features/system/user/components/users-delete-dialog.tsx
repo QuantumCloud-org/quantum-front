@@ -4,12 +4,12 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
-import { deleteUsers } from '../api'
-import { type User } from '../data/schema'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { deleteUsers } from '../api'
+import { type User } from '../data/schema'
 
 type UserDeleteDialogProps = {
   open: boolean
@@ -83,7 +83,10 @@ export function UsersDeleteDialog({
           </p>
 
           <div className='my-2 flex items-center gap-3'>
-            <Label htmlFor='users-delete-confirm' className='shrink-0 whitespace-nowrap'>
+            <Label
+              htmlFor='users-delete-confirm'
+              className='shrink-0 whitespace-nowrap'
+            >
               用户名：
             </Label>
             <Input

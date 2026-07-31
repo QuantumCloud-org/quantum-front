@@ -66,13 +66,17 @@ export function normalizeCacheDetail(input: unknown): CacheDetail {
 }
 
 export function buildCacheOverview(stats: CacheStat[]): CacheOverview {
-  const totalHitRate = stats.reduce((sum, stat) => sum + parseHitRate(stat.hitRate), 0)
+  const totalHitRate = stats.reduce(
+    (sum, stat) => sum + parseHitRate(stat.hitRate),
+    0
+  )
 
   return {
     cacheCount: stats.length,
     totalEntries: stats.reduce((sum, stat) => sum + stat.size, 0),
     totalHits: stats.reduce((sum, stat) => sum + stat.hitCount, 0),
     totalMisses: stats.reduce((sum, stat) => sum + stat.missCount, 0),
-    averageHitRate: stats.length > 0 ? Number((totalHitRate / stats.length).toFixed(2)) : 0,
+    averageHitRate:
+      stats.length > 0 ? Number((totalHitRate / stats.length).toFixed(2)) : 0,
   }
 }

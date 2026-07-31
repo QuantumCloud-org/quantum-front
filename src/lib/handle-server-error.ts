@@ -1,6 +1,6 @@
 import { AxiosError } from 'axios'
-import { toast } from 'sonner'
 import type { ApiResult } from '@/types/api'
+import { toast } from 'sonner'
 
 type ErrorPayload = ApiResult<unknown> & {
   title?: string

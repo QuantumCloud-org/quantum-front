@@ -17,8 +17,8 @@ import {
   getRoleManagementAccess,
   isProtectedSystemRole,
 } from '../role-management-access'
-import { useRoles } from './roles-provider'
 import { RolesDataScopeDialog } from './roles-data-scope-dialog'
+import { useRoles } from './roles-provider'
 import { RolesStatusDialog } from './roles-status-dialog'
 
 type DataTableRowActionsProps = {

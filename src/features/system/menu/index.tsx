@@ -5,23 +5,12 @@ import { AxiosError } from 'axios'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { ApiResult } from '@/types/api'
 import { FolderPlus, Save, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import type { ApiResult } from '@/types/api'
-import { ConfirmDialog } from '@/components/confirm-dialog'
-import { Header } from '@/components/layout/header'
-import { Main } from '@/components/layout/main'
-import { ProfileDropdown } from '@/components/profile-dropdown'
-import { Search } from '@/components/search'
-import { SelectDropdown } from '@/components/select-dropdown'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Form,
   FormControl,
@@ -32,6 +21,12 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import { Header } from '@/components/layout/header'
+import { Main } from '@/components/layout/main'
+import { ProfileDropdown } from '@/components/profile-dropdown'
+import { Search } from '@/components/search'
+import { SelectDropdown } from '@/components/select-dropdown'
 import {
   createMenu,
   deleteMenu,
@@ -39,15 +34,15 @@ import {
   fetchMenuTree,
   updateMenu,
 } from './api'
+import { MenuIconPicker } from './components/menu-icon-picker'
+import { MenuParentPicker } from './components/menu-parent-picker'
+import { MenuTreePanel } from './components/menu-tree-panel'
 import {
   extractMenuServerErrors,
   menuFormSchema,
   type MenuForm,
   type MenuFormValues,
 } from './form'
-import { MenuIconPicker } from './components/menu-icon-picker'
-import { MenuParentPicker } from './components/menu-parent-picker'
-import { MenuTreePanel } from './components/menu-tree-panel'
 import {
   buildMenuFormDefaults,
   collectMenuBranchIds,
@@ -74,7 +69,9 @@ export function MenuManagementPage() {
   const queryClient = useQueryClient()
   const [selectedMenuId, setSelectedMenuId] = useState<string | null>(null)
   const [expandedMenuIds, setExpandedMenuIds] = useState<Set<string>>(new Set())
-  const [collapsedMenuIds, setCollapsedMenuIds] = useState<Set<string>>(new Set())
+  const [collapsedMenuIds, setCollapsedMenuIds] = useState<Set<string>>(
+    new Set()
+  )
   const [treeKeyword, setTreeKeyword] = useState('')
   const [menuTypeFilter, setMenuTypeFilter] = useState<MenuTypeFilter>('all')
   const [isCreating, setIsCreating] = useState(false)
@@ -132,7 +129,9 @@ export function MenuManagementPage() {
       return
     }
 
-    form.reset(buildMenuFormDefaults(menuDetailQuery.data, selectedMenu?.parentId))
+    form.reset(
+      buildMenuFormDefaults(menuDetailQuery.data, selectedMenu?.parentId)
+    )
   }, [form, isCreating, menuDetailQuery.data, selectedMenu?.parentId])
 
   const createMutation = useMutation({
@@ -201,7 +200,8 @@ export function MenuManagementPage() {
       : new Set<string>()
   const descendantCount = Math.max(selectedBranchIds.size - 1, 0)
 
-  const selectedParentMenuId = selectedMenu?.menuId ?? resolvedSelectedMenuId ?? '0'
+  const selectedParentMenuId =
+    selectedMenu?.menuId ?? resolvedSelectedMenuId ?? '0'
   const createParentId =
     parentIdValue || draftParentMenuId || resolvedSelectedMenuId || '0'
   const defaultExpandedMenuIds = createDefaultExpandedMenuIds(menuTree)
@@ -218,9 +218,11 @@ export function MenuManagementPage() {
 
   async function handleSaveError(error: unknown) {
     if (error instanceof AxiosError) {
-      const responseData = error.response?.data as ApiResult<unknown> | undefined
+      const responseData = error.response?.data as
+        ApiResult<unknown> | undefined
       const serverMessage = responseData?.message
-      const { fieldErrors, generalErrors } = extractMenuServerErrors(serverMessage)
+      const { fieldErrors, generalErrors } =
+        extractMenuServerErrors(serverMessage)
 
       let hasFieldError = false
 
@@ -312,10 +314,14 @@ export function MenuManagementPage() {
       shouldDirty: false,
       shouldTouch: false,
     })
-    form.setValue('orderNum', String(findNextMenuOrderNum(menuTree, parentMenuId)), {
-      shouldDirty: false,
-      shouldTouch: false,
-    })
+    form.setValue(
+      'orderNum',
+      String(findNextMenuOrderNum(menuTree, parentMenuId)),
+      {
+        shouldDirty: false,
+        shouldTouch: false,
+      }
+    )
     setIsCreating(true)
   }
 
@@ -326,7 +332,9 @@ export function MenuManagementPage() {
     setIsCreating(false)
 
     if (menuDetailQuery.data) {
-      form.reset(buildMenuFormDefaults(menuDetailQuery.data, selectedMenu?.parentId))
+      form.reset(
+        buildMenuFormDefaults(menuDetailQuery.data, selectedMenu?.parentId)
+      )
       return
     }
 
@@ -444,7 +452,9 @@ export function MenuManagementPage() {
               <div className='flex min-h-10 flex-wrap items-center justify-between gap-3'>
                 <div>
                   <CardTitle>
-                    {isCreating ? '创建菜单' : (selectedMenu?.menuName ?? '菜单信息维护')}
+                    {isCreating
+                      ? '创建菜单'
+                      : (selectedMenu?.menuName ?? '菜单信息维护')}
                   </CardTitle>
                 </div>
                 <div className='flex flex-wrap gap-2'>
@@ -754,7 +764,6 @@ export function MenuManagementPage() {
                           </FormItem>
                         )}
                       />
-
                     </div>
 
                     <div className='mt-auto space-y-2 pt-4'>
@@ -783,7 +792,7 @@ export function MenuManagementPage() {
                       <p
                         className={cn(
                           'min-h-4 text-right text-xs text-destructive',
-                          !submitError && 'select-none text-transparent'
+                          !submitError && 'text-transparent select-none'
                         )}
                       >
                         {submitError || '\u00A0'}

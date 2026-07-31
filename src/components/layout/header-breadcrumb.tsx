@@ -1,7 +1,7 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { House } from 'lucide-react'
 import { getBreadcrumbsForPath } from '@/app/navigation/registry'
 import { useNavigation } from '@/app/navigation/use-navigation'
+import { House } from 'lucide-react'
 import {
   Breadcrumb,
   BreadcrumbItem,

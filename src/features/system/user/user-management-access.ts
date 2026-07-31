@@ -2,9 +2,7 @@ import { hasPermission } from '@/app/auth/access'
 import type { AuthUser } from '@/types/auth'
 
 type UserPermissionSubject =
-  | Pick<AuthUser, 'roles' | 'permissions'>
-  | null
-  | undefined
+  Pick<AuthUser, 'roles' | 'permissions'> | null | undefined
 
 export type UserManagementAccess = {
   canCreateUsers: boolean
@@ -44,6 +42,9 @@ export function getUserManagementAccess(
     canDeleteUsers,
     canBulkDeleteUsers: canDeleteUsers,
     hasRowActions:
-      canEditUsers || canChangeUserStatus || canResetPasswords || canDeleteUsers,
+      canEditUsers ||
+      canChangeUserStatus ||
+      canResetPasswords ||
+      canDeleteUsers,
   }
 }

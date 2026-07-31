@@ -18,7 +18,12 @@ type Props = {
   onReset: () => void
 }
 
-export function OperLogSearchForm({ value, onChange, onSubmit, onReset }: Props) {
+export function OperLogSearchForm({
+  value,
+  onChange,
+  onSubmit,
+  onReset,
+}: Props) {
   return (
     <div className='flex flex-wrap items-end gap-2 rounded-md border bg-card p-3'>
       <Input

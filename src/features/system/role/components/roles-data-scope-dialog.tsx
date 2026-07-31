@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { handleServerError } from '@/lib/handle-server-error'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -11,21 +13,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SelectDropdown } from '@/components/select-dropdown'
-import { handleServerError } from '@/lib/handle-server-error'
 import {
   fetchDeptTreeSelect,
   fetchRoleDeptIds,
   updateRoleDataScope,
 } from '../api'
-import {
-  roleDataScopeOptions,
-  type Role,
-  type RoleDataScope,
-} from '../model'
+import { roleDataScopeOptions, type Role, type RoleDataScope } from '../model'
 import { CheckableTree } from './roles-checkable-tree'
 
 type RolesDataScopeDialogProps = {
@@ -96,7 +92,8 @@ export function RolesDataScopeDialog({
     !deptIdsDirty &&
     (roleDeptIdsQuery.isFetching || roleDeptIdsQuery.isPending)
   const hasDeptTreeError = isCustomScope && deptTreeQuery.isError
-  const hasRoleDeptError = isCustomScope && isOriginallyCustomScope && roleDeptIdsQuery.isError
+  const hasRoleDeptError =
+    isCustomScope && isOriginallyCustomScope && roleDeptIdsQuery.isError
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -175,7 +172,8 @@ export function RolesDataScopeDialog({
             disabled={
               mutation.isPending ||
               (isCustomScope && (isDeptLoading || hasDeptTreeError)) ||
-              (isOriginallyCustomScope && (isRoleDeptsLoading || hasRoleDeptError))
+              (isOriginallyCustomScope &&
+                (isRoleDeptsLoading || hasRoleDeptError))
             }
           >
             保存

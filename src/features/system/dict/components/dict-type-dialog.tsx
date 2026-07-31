@@ -1,20 +1,9 @@
 import { useEffect, useState } from 'react'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { AxiosError } from 'axios'
 import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import type { ApiResult } from '@/types/api'
 import { cn } from '@/lib/utils'
-import {
-  dictTypeFormSchema,
-  extractDictTypeServerErrors,
-  type DictTypeForm,
-  type DictTypeFormValues,
-} from '../form'
-import {
-  buildDictTypeFormDefaults,
-  type DictType,
-  type DictTypeFormInput,
-} from '../model'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -35,6 +24,17 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { SelectDropdown } from '@/components/select-dropdown'
+import {
+  dictTypeFormSchema,
+  extractDictTypeServerErrors,
+  type DictTypeForm,
+  type DictTypeFormValues,
+} from '../form'
+import {
+  buildDictTypeFormDefaults,
+  type DictType,
+  type DictTypeFormInput,
+} from '../model'
 
 type DictTypeDialogProps = {
   open: boolean
@@ -81,7 +81,8 @@ export function DictTypeDialog({
       if (error instanceof AxiosError) {
         const message = (error.response?.data as ApiResult<unknown> | undefined)
           ?.message
-        const { fieldErrors, generalErrors } = extractDictTypeServerErrors(message)
+        const { fieldErrors, generalErrors } =
+          extractDictTypeServerErrors(message)
 
         let hasFieldError = false
         for (const [field, fieldMessage] of Object.entries(fieldErrors)) {
@@ -125,7 +126,9 @@ export function DictTypeDialog({
     >
       <DialogContent className='sm:max-w-[520px]'>
         <DialogHeader>
-          <DialogTitle>{isEditing ? '编辑字典分组' : '新增字典分组'}</DialogTitle>
+          <DialogTitle>
+            {isEditing ? '编辑字典分组' : '新增字典分组'}
+          </DialogTitle>
           <DialogDescription>
             分组编码会作为右侧字典项的归属标识，创建后建议保持稳定。
           </DialogDescription>
@@ -145,7 +148,11 @@ export function DictTypeDialog({
                   <FormItem>
                     <RequiredFormLabel>分组名称</RequiredFormLabel>
                     <FormControl>
-                      <Input placeholder='例如：产业领域' disabled={isSaving} {...field} />
+                      <Input
+                        placeholder='例如：产业领域'
+                        disabled={isSaving}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -215,7 +222,7 @@ export function DictTypeDialog({
             <p
               className={cn(
                 'min-h-4 text-right text-xs text-destructive',
-                !submitError && 'select-none text-transparent'
+                !submitError && 'text-transparent select-none'
               )}
             >
               {submitError || '\u00A0'}

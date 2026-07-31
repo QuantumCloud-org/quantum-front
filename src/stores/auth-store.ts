@@ -1,6 +1,10 @@
-import { create } from 'zustand'
-import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import type { AuthUser, BootstrapStatus } from '@/types/auth'
+import { create } from 'zustand'
+import {
+  createJSONStorage,
+  persist,
+  type StateStorage,
+} from 'zustand/middleware'
 
 const AUTH_STORAGE_KEY = 'talent_manager_auth'
 
@@ -51,7 +55,10 @@ const browserStorage: StateStorage = {
 }
 
 function createDeviceId() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+  if (
+    typeof crypto !== 'undefined' &&
+    typeof crypto.randomUUID === 'function'
+  ) {
     return crypto.randomUUID()
   }
 

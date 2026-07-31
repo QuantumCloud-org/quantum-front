@@ -46,10 +46,7 @@ export function NotificationsForm() {
 
   return (
     <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(() => undefined)}
-        className='space-y-8'
-      >
+      <form onSubmit={form.handleSubmit(() => undefined)} className='space-y-8'>
         <FormField
           control={form.control}
           name='type'

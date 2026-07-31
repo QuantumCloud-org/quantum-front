@@ -9,10 +9,7 @@ type AppProvidersProps = {
   queryClient: QueryClient
 }
 
-export function AppProviders({
-  children,
-  queryClient,
-}: AppProvidersProps) {
+export function AppProviders({ children, queryClient }: AppProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
       <AccessibilityProvider>

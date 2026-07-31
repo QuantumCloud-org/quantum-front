@@ -107,7 +107,9 @@ function includesIgnoreCase(value: string | null, keyword: string) {
   return value.toLowerCase().includes(keyword.toLowerCase())
 }
 
-function normalizeOnlineUserFilters(filters: OnlineUserFilters): OnlineUserFilters {
+function normalizeOnlineUserFilters(
+  filters: OnlineUserFilters
+): OnlineUserFilters {
   return {
     username: filters.username.trim(),
     nickname: filters.nickname.trim(),

@@ -1,3 +1,4 @@
+import { useNavigation } from '@/app/navigation/use-navigation'
 import { useLayout } from '@/context/layout-provider'
 import {
   Sidebar,
@@ -6,7 +7,6 @@ import {
   SidebarHeader,
   SidebarRail,
 } from '@/components/ui/sidebar'
-import { useNavigation } from '@/app/navigation/use-navigation'
 import { AppTitle } from './app-title'
 import { NavGroup } from './nav-group'
 import { NavUser } from './nav-user'

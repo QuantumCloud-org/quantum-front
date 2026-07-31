@@ -1,24 +1,18 @@
 import { useMemo, useState } from 'react'
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
-import { BookOpenText, Plus, RefreshCw } from 'lucide-react'
-import { toast } from 'sonner'
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { useAccess } from '@/app/auth/access'
 import type { ApiResult } from '@/types/api'
-import { ConfirmDialog } from '@/components/confirm-dialog'
-import { Header } from '@/components/layout/header'
-import { Main } from '@/components/layout/main'
-import { ProfileDropdown } from '@/components/profile-dropdown'
-import { Search } from '@/components/search'
-import { SelectDropdown } from '@/components/select-dropdown'
+import { BookOpenText, Plus, RefreshCw } from 'lucide-react'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
   Table,
@@ -28,6 +22,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import { Header } from '@/components/layout/header'
+import { Main } from '@/components/layout/main'
+import { ProfileDropdown } from '@/components/profile-dropdown'
+import { Search } from '@/components/search'
+import { SelectDropdown } from '@/components/select-dropdown'
 import {
   createDictData,
   createDictType,
@@ -41,7 +41,12 @@ import {
 } from './api'
 import { DictDataDialog } from './components/dict-data-dialog'
 import { DictTypeDialog } from './components/dict-type-dialog'
-import { formatDateTime, type DictData, type DictStatus, type DictType } from './model'
+import {
+  formatDateTime,
+  type DictData,
+  type DictStatus,
+  type DictType,
+} from './model'
 
 const statusOptions = [
   { label: '全部状态', value: 'all' },
@@ -98,13 +103,17 @@ export function DictManagementPage() {
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null)
   const [dictTypeDialogOpen, setDictTypeDialogOpen] = useState(false)
   const [editingType, setEditingType] = useState<DictType | undefined>()
-  const [deleteTypeTarget, setDeleteTypeTarget] = useState<DictType | null>(null)
+  const [deleteTypeTarget, setDeleteTypeTarget] = useState<DictType | null>(
+    null
+  )
 
   const [dataKeyword, setDataKeyword] = useState('')
   const [dataStatus, setDataStatus] = useState('all')
   const [dictDataDialogOpen, setDictDataDialogOpen] = useState(false)
   const [editingData, setEditingData] = useState<DictData | undefined>()
-  const [deleteDataTarget, setDeleteDataTarget] = useState<DictData | null>(null)
+  const [deleteDataTarget, setDeleteDataTarget] = useState<DictData | null>(
+    null
+  )
 
   const typeQueryParams = useMemo(
     () => ({
@@ -124,7 +133,7 @@ export function DictManagementPage() {
   const resolvedSelectedTypeId =
     selectedTypeId && dictTypes.some((item) => item.id === selectedTypeId)
       ? selectedTypeId
-      : dictTypes[0]?.id ?? null
+      : (dictTypes[0]?.id ?? null)
   const selectedType =
     dictTypes.find((item) => item.id === resolvedSelectedTypeId) ?? null
 
@@ -154,7 +163,9 @@ export function DictManagementPage() {
     onSuccess: async (nextId) => {
       toast.success('字典分组已创建。')
       setSelectedTypeId(nextId || null)
-      await queryClient.invalidateQueries({ queryKey: ['system', 'dict', 'types'] })
+      await queryClient.invalidateQueries({
+        queryKey: ['system', 'dict', 'types'],
+      })
     },
   })
 
@@ -162,8 +173,12 @@ export function DictManagementPage() {
     mutationFn: updateDictType,
     onSuccess: async () => {
       toast.success('字典分组已更新。')
-      await queryClient.invalidateQueries({ queryKey: ['system', 'dict', 'types'] })
-      await queryClient.invalidateQueries({ queryKey: ['system', 'dict', 'data'] })
+      await queryClient.invalidateQueries({
+        queryKey: ['system', 'dict', 'types'],
+      })
+      await queryClient.invalidateQueries({
+        queryKey: ['system', 'dict', 'data'],
+      })
     },
   })
 
@@ -172,11 +187,16 @@ export function DictManagementPage() {
     onSuccess: async () => {
       toast.success('字典分组已删除。')
       setDeleteTypeTarget(null)
-      await queryClient.invalidateQueries({ queryKey: ['system', 'dict', 'types'] })
-      await queryClient.invalidateQueries({ queryKey: ['system', 'dict', 'data'] })
+      await queryClient.invalidateQueries({
+        queryKey: ['system', 'dict', 'types'],
+      })
+      await queryClient.invalidateQueries({
+        queryKey: ['system', 'dict', 'data'],
+      })
     },
     onError: (error) => {
-      const message = (error as AxiosError<ApiResult<unknown>>)?.response?.data?.message
+      const message = (error as AxiosError<ApiResult<unknown>>)?.response?.data
+        ?.message
       toast.error(message || '删除字典分组失败，请重试。')
     },
   })
@@ -195,7 +215,9 @@ export function DictManagementPage() {
     mutationFn: createDictData,
     onSuccess: async () => {
       toast.success('字典项已创建。')
-      await queryClient.invalidateQueries({ queryKey: ['system', 'dict', 'data'] })
+      await queryClient.invalidateQueries({
+        queryKey: ['system', 'dict', 'data'],
+      })
     },
   })
 
@@ -203,7 +225,9 @@ export function DictManagementPage() {
     mutationFn: updateDictData,
     onSuccess: async () => {
       toast.success('字典项已更新。')
-      await queryClient.invalidateQueries({ queryKey: ['system', 'dict', 'data'] })
+      await queryClient.invalidateQueries({
+        queryKey: ['system', 'dict', 'data'],
+      })
     },
   })
 
@@ -212,10 +236,13 @@ export function DictManagementPage() {
     onSuccess: async () => {
       toast.success('字典项已删除。')
       setDeleteDataTarget(null)
-      await queryClient.invalidateQueries({ queryKey: ['system', 'dict', 'data'] })
+      await queryClient.invalidateQueries({
+        queryKey: ['system', 'dict', 'data'],
+      })
     },
     onError: (error) => {
-      const message = (error as AxiosError<ApiResult<unknown>>)?.response?.data?.message
+      const message = (error as AxiosError<ApiResult<unknown>>)?.response?.data
+        ?.message
       toast.error(message || '删除字典项失败，请重试。')
     },
   })
@@ -269,7 +296,9 @@ export function DictManagementPage() {
                 disabled={refreshCacheMutation.isPending}
               >
                 <RefreshCw
-                  className={refreshCacheMutation.isPending ? 'animate-spin' : undefined}
+                  className={
+                    refreshCacheMutation.isPending ? 'animate-spin' : undefined
+                  }
                 />
                 刷新缓存
               </Button>
@@ -284,7 +313,11 @@ export function DictManagementPage() {
                 <div className='flex items-center justify-between gap-2'>
                   <CardTitle className='text-base'>字典分组</CardTitle>
                   {canAdd ? (
-                    <Button type='button' size='sm' onClick={openCreateTypeDialog}>
+                    <Button
+                      type='button'
+                      size='sm'
+                      onClick={openCreateTypeDialog}
+                    >
                       <Plus />
                       添加分组
                     </Button>
@@ -328,9 +361,7 @@ export function DictManagementPage() {
                           role='button'
                           tabIndex={0}
                           className={`flex w-full items-start justify-between gap-3 px-4 py-3 text-left transition-colors ${
-                            isActive
-                              ? 'bg-primary/8'
-                              : 'hover:bg-muted/40'
+                            isActive ? 'bg-primary/8' : 'hover:bg-muted/40'
                           }`}
                           onClick={() => setSelectedTypeId(item.id)}
                           onKeyDown={(event) => {
@@ -343,7 +374,9 @@ export function DictManagementPage() {
                           <div className='min-w-0 space-y-1'>
                             <div className='flex items-center gap-2'>
                               <BookOpenText className='size-4 text-muted-foreground' />
-                              <span className='truncate font-medium'>{item.dictName}</span>
+                              <span className='truncate font-medium'>
+                                {item.dictName}
+                              </span>
                             </div>
                             <div className='flex min-w-0 items-center gap-2 text-xs text-muted-foreground'>
                               <span
@@ -363,7 +396,7 @@ export function DictManagementPage() {
 
                           {(canEdit || canRemove) && (
                             <div
-                              className='flex shrink-0 self-center items-center gap-1'
+                              className='flex shrink-0 items-center gap-1 self-center'
                               onClick={(event) => event.stopPropagation()}
                             >
                               {canEdit ? (
@@ -403,7 +436,9 @@ export function DictManagementPage() {
               <div className='flex w-full flex-wrap items-center justify-between gap-3'>
                 <div className='space-y-1'>
                   <CardTitle>
-                    {selectedType ? `字典项：${selectedType.dictName}` : '字典项'}
+                    {selectedType
+                      ? `字典项：${selectedType.dictName}`
+                      : '字典项'}
                   </CardTitle>
                   <p className='text-sm text-muted-foreground'>
                     {selectedType
@@ -457,26 +492,40 @@ export function DictManagementPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className='w-28 text-center'>字典编码</TableHead>
-                        <TableHead className='w-32 text-center'>字典名称</TableHead>
+                        <TableHead className='w-28 text-center'>
+                          字典编码
+                        </TableHead>
+                        <TableHead className='w-32 text-center'>
+                          字典名称
+                        </TableHead>
                         <TableHead className='w-16 text-center'>排序</TableHead>
-                        <TableHead className='w-24 text-center'>默认项</TableHead>
+                        <TableHead className='w-24 text-center'>
+                          默认项
+                        </TableHead>
                         <TableHead className='w-24 text-center'>状态</TableHead>
                         <TableHead className='text-center'>备注</TableHead>
-                        <TableHead className='w-44 text-center'>创建时间</TableHead>
+                        <TableHead className='w-44 text-center'>
+                          创建时间
+                        </TableHead>
                         <TableHead className='w-28 text-center'>操作</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {dictDataQuery.isPending ? (
                         <TableRow>
-                          <TableCell colSpan={8} className='h-24 text-center text-muted-foreground'>
+                          <TableCell
+                            colSpan={8}
+                            className='h-24 text-center text-muted-foreground'
+                          >
                             字典项加载中...
                           </TableCell>
                         </TableRow>
                       ) : dictData.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={8} className='h-24 text-center text-muted-foreground'>
+                          <TableCell
+                            colSpan={8}
+                            className='h-24 text-center text-muted-foreground'
+                          >
                             当前分组下暂无字典项。
                           </TableCell>
                         </TableRow>
@@ -489,8 +538,12 @@ export function DictManagementPage() {
                               <TableCell className='text-center font-mono text-xs'>
                                 {item.dictValue}
                               </TableCell>
-                              <TableCell className='text-center'>{item.dictLabel}</TableCell>
-                              <TableCell className='text-center'>{item.dictSort}</TableCell>
+                              <TableCell className='text-center'>
+                                {item.dictLabel}
+                              </TableCell>
+                              <TableCell className='text-center'>
+                                {item.dictSort}
+                              </TableCell>
                               <TableCell>
                                 <Badge
                                   variant='outline'

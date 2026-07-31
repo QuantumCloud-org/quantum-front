@@ -1,8 +1,8 @@
 import { type QueryClient } from '@tanstack/react-query'
 import { createRootRouteWithContext, Outlet } from '@tanstack/react-router'
-import { AppDevtools } from '@/components/app-devtools'
-import { Toaster } from '@/components/ui/sonner'
 import { SearchProvider } from '@/context/search-provider'
+import { Toaster } from '@/components/ui/sonner'
+import { AppDevtools } from '@/components/app-devtools'
 import { GeneralError } from '@/features/errors/general-error'
 import { NotFoundError } from '@/features/errors/not-found-error'
 

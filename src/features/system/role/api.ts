@@ -1,6 +1,6 @@
 import type { ApiResult } from '@/types/api'
-import { toId, toIdList } from '@/lib/ids'
 import { apiClient } from '@/lib/http'
+import { toId, toIdList } from '@/lib/ids'
 import type { CheckableTreeNode } from './components/roles-checkable-tree'
 import {
   buildRoleCreatePayload,
@@ -131,7 +131,10 @@ export async function changeRoleStatus(input: RoleStatusUpdateInput) {
   return unwrapResult(response.data)
 }
 
-function normalizeTreeNode(input: unknown, seen: Set<string>): CheckableTreeNode[] {
+function normalizeTreeNode(
+  input: unknown,
+  seen: Set<string>
+): CheckableTreeNode[] {
   const record = getRecord(input)
   const id = toId(record.id ?? record.deptId ?? record.menuId)
   if (!id || id === '0' || seen.has(id)) {

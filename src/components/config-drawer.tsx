@@ -19,7 +19,6 @@ import { useFont } from '@/context/font-provider'
 import { type Collapsible, useLayout } from '@/context/layout-provider'
 import { useTheme } from '@/context/theme-provider'
 import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -36,6 +35,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import { Switch } from '@/components/ui/switch'
 import { useSidebar } from './ui/sidebar'
 
 type ConfigDrawerProps = {
@@ -112,7 +112,11 @@ function AccessibilityConfig() {
 
   return (
     <div>
-      <SectionTitle title='适老化' showReset={elderMode} onReset={resetAccessibility} />
+      <SectionTitle
+        title='适老化'
+        showReset={elderMode}
+        onReset={resetAccessibility}
+      />
       <div className='flex items-center justify-between gap-3 rounded-lg border p-4'>
         <div className='font-medium'>适老化</div>
         <Switch

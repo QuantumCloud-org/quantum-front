@@ -1,6 +1,6 @@
 import type { ApiResult } from '@/types/api'
-import { toId } from '@/lib/ids'
 import { apiClient } from '@/lib/http'
+import { toId } from '@/lib/ids'
 import {
   buildDictDataPayload,
   buildDictTypePayload,

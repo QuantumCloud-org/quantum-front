@@ -259,8 +259,7 @@ export function ProfileAccountForm() {
     } catch (error) {
       if (error instanceof AxiosError) {
         const responseData = error.response?.data as
-          | ApiResult<unknown>
-          | undefined
+          ApiResult<unknown> | undefined
         const { fieldErrors, generalErrors } = extractProfileServerErrors(
           responseData?.message
         )
@@ -407,7 +406,10 @@ export function ProfileAccountForm() {
                         <VenusAndMars className='size-4.5 text-muted-foreground' />
                         性别
                       </FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
                         <FormControl>
                           <SelectTrigger className='w-full'>
                             <SelectValue placeholder='请选择性别' />

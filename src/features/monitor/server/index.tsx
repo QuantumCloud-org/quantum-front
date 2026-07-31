@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
+import { useQuery } from '@tanstack/react-query'
+import type { ApiResult } from '@/types/api'
 import { Activity, Database, HardDrive, RefreshCw, Server } from 'lucide-react'
 import {
   Bar,
@@ -10,10 +11,6 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { Header } from '@/components/layout/header'
-import { Main } from '@/components/layout/main'
-import { ProfileDropdown } from '@/components/profile-dropdown'
-import { Search } from '@/components/search'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -33,17 +30,23 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import type { ApiResult } from '@/types/api'
+import { Header } from '@/components/layout/header'
+import { Main } from '@/components/layout/main'
+import { ProfileDropdown } from '@/components/profile-dropdown'
+import { Search } from '@/components/search'
 import { fetchServerInfo } from './api'
 import { buildServerOverview, toUsageChartData } from './model'
 
 function getErrorMessage(error: unknown, fallback: string) {
   return (
-    (error as AxiosError<ApiResult<unknown>>)?.response?.data?.message ?? fallback
+    (error as AxiosError<ApiResult<unknown>>)?.response?.data?.message ??
+    fallback
   )
 }
 
-function getUsageVariant(usage: number): 'default' | 'secondary' | 'destructive' {
+function getUsageVariant(
+  usage: number
+): 'default' | 'secondary' | 'destructive' {
   if (usage >= 80) return 'destructive'
   if (usage >= 50) return 'secondary'
   return 'default'
@@ -100,7 +103,7 @@ function InfoField({ label, value }: { label: string; value: string }) {
   return (
     <div className='rounded-lg border bg-muted/20 p-4'>
       <div className='text-sm text-muted-foreground'>{label}</div>
-      <div className='mt-1 break-all font-medium'>{value || '-'}</div>
+      <div className='mt-1 font-medium break-all'>{value || '-'}</div>
     </div>
   )
 }
@@ -114,7 +117,9 @@ export function ServerMonitorPage() {
   const server = serverQuery.data
   const overview = server ? buildServerOverview(server) : null
   const usageChartData = server ? toUsageChartData(server) : []
-  const diskRows = server ? [...server.sysFiles].sort((left, right) => right.usage - left.usage) : []
+  const diskRows = server
+    ? [...server.sysFiles].sort((left, right) => right.usage - left.usage)
+    : []
 
   return (
     <>
@@ -175,21 +180,33 @@ export function ServerMonitorPage() {
           <OverviewCard
             title='系统内存'
             value={overview ? `${overview.memoryUsage}%` : '-'}
-            description={server ? `已用 ${server.mem.used} / 总计 ${server.mem.total}` : '等待数据'}
+            description={
+              server
+                ? `已用 ${server.mem.used} / 总计 ${server.mem.total}`
+                : '等待数据'
+            }
             icon={Database}
             usage={overview?.memoryUsage}
           />
           <OverviewCard
             title='JVM 内存'
             value={overview ? `${overview.jvmUsage}%` : '-'}
-            description={server ? `已用 ${server.jvm.used} / 最大 ${server.jvm.max}` : '等待数据'}
+            description={
+              server
+                ? `已用 ${server.jvm.used} / 最大 ${server.jvm.max}`
+                : '等待数据'
+            }
             icon={Server}
             usage={overview?.jvmUsage}
           />
           <OverviewCard
             title='磁盘分区'
             value={overview?.diskCount ?? '-'}
-            description={overview ? `${overview.osName || '未知系统'} · 运行 ${overview.runtime || '-'}` : '等待数据'}
+            description={
+              overview
+                ? `${overview.osName || '未知系统'} · 运行 ${overview.runtime || '-'}`
+                : '等待数据'
+            }
             icon={HardDrive}
           />
         </div>
@@ -219,7 +236,10 @@ export function ServerMonitorPage() {
                     <div className='h-[280px] text-primary'>
                       <ResponsiveContainer width='100%' height='100%'>
                         <BarChart data={usageChartData}>
-                          <CartesianGrid strokeDasharray='3 3' vertical={false} />
+                          <CartesianGrid
+                            strokeDasharray='3 3'
+                            vertical={false}
+                          />
                           <XAxis
                             dataKey='name'
                             tickLine={false}
@@ -233,7 +253,11 @@ export function ServerMonitorPage() {
                             domain={[0, 100]}
                           />
                           <ChartTooltip formatter={(value) => `${value}%`} />
-                          <Bar dataKey='usage' fill='currentColor' radius={[6, 6, 0, 0]} />
+                          <Bar
+                            dataKey='usage'
+                            fill='currentColor'
+                            radius={[6, 6, 0, 0]}
+                          />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
@@ -249,12 +273,27 @@ export function ServerMonitorPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className='grid gap-4 pt-6 sm:grid-cols-2'>
-                  <InfoField label='主机名' value={server?.sys.computerName ?? '-'} />
-                  <InfoField label='主机 IP' value={server?.sys.computerIp ?? '-'} />
-                  <InfoField label='操作系统' value={server?.sys.osName ?? '-'} />
-                  <InfoField label='系统架构' value={server?.sys.osArch ?? '-'} />
+                  <InfoField
+                    label='主机名'
+                    value={server?.sys.computerName ?? '-'}
+                  />
+                  <InfoField
+                    label='主机 IP'
+                    value={server?.sys.computerIp ?? '-'}
+                  />
+                  <InfoField
+                    label='操作系统'
+                    value={server?.sys.osName ?? '-'}
+                  />
+                  <InfoField
+                    label='系统架构'
+                    value={server?.sys.osArch ?? '-'}
+                  />
                   <div className='sm:col-span-2'>
-                    <InfoField label='项目路径' value={server?.sys.userDir ?? '-'} />
+                    <InfoField
+                      label='项目路径'
+                      value={server?.sys.userDir ?? '-'}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -272,11 +311,23 @@ export function ServerMonitorPage() {
                 </CardHeader>
                 <CardContent className='grid gap-4 pt-6 sm:grid-cols-2'>
                   <InfoField label='JVM 名称' value={server?.jvm.name ?? '-'} />
-                  <InfoField label='Java 版本' value={server?.jvm.version ?? '-'} />
-                  <InfoField label='启动时间' value={server?.jvm.startTime ?? '-'} />
-                  <InfoField label='运行时长' value={server?.jvm.runTime ?? '-'} />
+                  <InfoField
+                    label='Java 版本'
+                    value={server?.jvm.version ?? '-'}
+                  />
+                  <InfoField
+                    label='启动时间'
+                    value={server?.jvm.startTime ?? '-'}
+                  />
+                  <InfoField
+                    label='运行时长'
+                    value={server?.jvm.runTime ?? '-'}
+                  />
                   <div className='sm:col-span-2'>
-                    <InfoField label='JAVA_HOME' value={server?.jvm.home ?? '-'} />
+                    <InfoField
+                      label='JAVA_HOME'
+                      value={server?.jvm.home ?? '-'}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -293,14 +344,28 @@ export function ServerMonitorPage() {
                     <Badge variant={getUsageVariant(server?.jvm.usage ?? 0)}>
                       {server ? `${server.jvm.usage}%` : '-'}
                     </Badge>
-                    <span className='text-sm text-muted-foreground'>当前 JVM 使用率</span>
+                    <span className='text-sm text-muted-foreground'>
+                      当前 JVM 使用率
+                    </span>
                   </div>
                   {renderUsageBar(server?.jvm.usage ?? 0)}
                   <div className='grid gap-4 sm:grid-cols-2'>
-                    <InfoField label='已分配堆内存' value={server?.jvm.total ?? '-'} />
-                    <InfoField label='最大可用内存' value={server?.jvm.max ?? '-'} />
-                    <InfoField label='已使用内存' value={server?.jvm.used ?? '-'} />
-                    <InfoField label='空闲内存' value={server?.jvm.free ?? '-'} />
+                    <InfoField
+                      label='已分配堆内存'
+                      value={server?.jvm.total ?? '-'}
+                    />
+                    <InfoField
+                      label='最大可用内存'
+                      value={server?.jvm.max ?? '-'}
+                    />
+                    <InfoField
+                      label='已使用内存'
+                      value={server?.jvm.used ?? '-'}
+                    />
+                    <InfoField
+                      label='空闲内存'
+                      value={server?.jvm.free ?? '-'}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -331,13 +396,19 @@ export function ServerMonitorPage() {
                     <TableBody>
                       {serverQuery.isLoading ? (
                         <TableRow>
-                          <TableCell colSpan={6} className='text-center text-sm text-muted-foreground'>
+                          <TableCell
+                            colSpan={6}
+                            className='text-center text-sm text-muted-foreground'
+                          >
                             磁盘信息加载中...
                           </TableCell>
                         </TableRow>
                       ) : diskRows.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className='text-center text-sm text-muted-foreground'>
+                          <TableCell
+                            colSpan={6}
+                            className='text-center text-sm text-muted-foreground'
+                          >
                             暂无磁盘信息
                           </TableCell>
                         </TableRow>
@@ -346,7 +417,9 @@ export function ServerMonitorPage() {
                           <TableRow key={`${disk.dirName}-${disk.sysTypeName}`}>
                             <TableCell>
                               <div className='space-y-1'>
-                                <div className='font-medium'>{disk.dirName || '-'}</div>
+                                <div className='font-medium'>
+                                  {disk.dirName || '-'}
+                                </div>
                                 <div className='text-xs text-muted-foreground'>
                                   {disk.sysTypeName || '-'}
                                 </div>

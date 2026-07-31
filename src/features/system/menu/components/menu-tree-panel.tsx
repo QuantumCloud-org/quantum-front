@@ -1,13 +1,9 @@
 'use client'
 
 import { Trash2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-} from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TreeView } from '@/components/ui/tree-view'
@@ -84,7 +80,9 @@ export function MenuTreePanel({
           <SelectDropdown
             isControlled
             value={typeFilter}
-            onValueChange={(value) => onTypeFilterChange(value as MenuTypeFilter)}
+            onValueChange={(value) =>
+              onTypeFilterChange(value as MenuTypeFilter)
+            }
             withFormControl={false}
             items={[
               { label: '全部类型', value: 'all' },
@@ -114,7 +112,8 @@ export function MenuTreePanel({
               onToggleExpand={onToggleExpand}
               renderTrailing={(item) => {
                 const node =
-                  findMenuById(filteredTree, item.id) ?? findMenuById(tree, item.id)
+                  findMenuById(filteredTree, item.id) ??
+                  findMenuById(tree, item.id)
 
                 if (!node) {
                   return null

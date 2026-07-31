@@ -55,7 +55,10 @@ describe('server model', () => {
       mem: { usage: 37.5 },
       jvm: { usage: 50, runTime: '0天2小时10分钟' },
       sys: { osName: 'Linux' },
-      sysFiles: [{ dirName: '/', usage: 66.3 }, { dirName: '/data', usage: 40 }],
+      sysFiles: [
+        { dirName: '/', usage: 66.3 },
+        { dirName: '/data', usage: 40 },
+      ],
     })
 
     const overview = buildServerOverview(server)

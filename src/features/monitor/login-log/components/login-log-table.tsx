@@ -27,8 +27,7 @@ export function LoginLogTable({
   onToggleSelectAll,
   onToggleSelect,
 }: Props) {
-  const allSelected =
-    records.length > 0 && selectedIds.size === records.length
+  const allSelected = records.length > 0 && selectedIds.size === records.length
   const someSelected = selectedIds.size > 0 && selectedIds.size < records.length
 
   return (
@@ -59,7 +58,10 @@ export function LoginLogTable({
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={allowSelection ? 9 : 8} className='text-center text-sm'>
+              <TableCell
+                colSpan={allowSelection ? 9 : 8}
+                className='text-center text-sm'
+              >
                 加载中...
               </TableCell>
             </TableRow>
@@ -93,9 +95,7 @@ export function LoginLogTable({
                 <TableCell>{log.browser || '-'}</TableCell>
                 <TableCell>{log.os || '-'}</TableCell>
                 <TableCell>
-                  <Badge
-                    variant={log.status === 0 ? 'default' : 'destructive'}
-                  >
+                  <Badge variant={log.status === 0 ? 'default' : 'destructive'}>
                     {log.status === 0 ? '成功' : '失败'}
                   </Badge>
                 </TableCell>

@@ -1,9 +1,9 @@
+import type { ApiResult } from '@/types/api'
 import { apiClient } from '@/lib/http'
 import {
   MOCK_MENU_ROUTERS,
   warnOnUnpairedMockRoutes,
 } from '@/lib/mock/session-fixtures'
-import type { ApiResult } from '@/types/api'
 import type { BackendMenuRouter } from './types'
 
 function unwrapResult<T>(result: ApiResult<T>) {
@@ -19,8 +19,9 @@ export async function fetchMenuRouters() {
     return MOCK_MENU_ROUTERS
   }
 
-  const response =
-    await apiClient.get<ApiResult<BackendMenuRouter[]>>('/system/menu/getRouters')
+  const response = await apiClient.get<ApiResult<BackendMenuRouter[]>>(
+    '/system/menu/getRouters'
+  )
 
   return unwrapResult(response.data)
 }

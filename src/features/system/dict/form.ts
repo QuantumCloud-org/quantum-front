@@ -53,10 +53,7 @@ export const dictDataFormSchema = z.object({
       message: '排序值必须为非负整数。',
     }),
   cssClass: z.string().trim().max(100, '标签样式长度不能超过 100 个字符。'),
-  listClass: z
-    .string()
-    .trim()
-    .max(100, '列表样式长度不能超过 100 个字符。'),
+  listClass: z.string().trim().max(100, '列表样式长度不能超过 100 个字符。'),
   isDefault: z.string().refine(isAllowedDefaultFlag, {
     message: '请选择是否默认。',
   }),
@@ -75,24 +72,26 @@ export type DictDataForm = z.output<typeof dictDataFormSchema>
 type DictTypeField = keyof DictTypeFormValues
 type DictDataField = keyof DictDataFormValues
 
-const dictTypeFieldPatterns: Array<{ field: DictTypeField; pattern: RegExp }> = [
-  { field: 'dictName', pattern: /分组名称|字典名称/ },
-  { field: 'dictType', pattern: /分组编码|字典类型|dictType/i },
-  { field: 'status', pattern: /状态/ },
-  { field: 'remark', pattern: /备注/ },
-]
+const dictTypeFieldPatterns: Array<{ field: DictTypeField; pattern: RegExp }> =
+  [
+    { field: 'dictName', pattern: /分组名称|字典名称/ },
+    { field: 'dictType', pattern: /分组编码|字典类型|dictType/i },
+    { field: 'status', pattern: /状态/ },
+    { field: 'remark', pattern: /备注/ },
+  ]
 
-const dictDataFieldPatterns: Array<{ field: DictDataField; pattern: RegExp }> = [
-  { field: 'dictLabel', pattern: /字典名称|标签/ },
-  { field: 'dictValue', pattern: /字典编码|字典值|编码/ },
-  { field: 'dictSort', pattern: /排序|dictSort/i },
-  { field: 'cssClass', pattern: /标签样式|css/i },
-  { field: 'listClass', pattern: /列表样式|listClass/i },
-  { field: 'isDefault', pattern: /默认/ },
-  { field: 'status', pattern: /状态/ },
-  { field: 'remark', pattern: /备注/ },
-  { field: 'dictType', pattern: /字典类型|分组/ },
-]
+const dictDataFieldPatterns: Array<{ field: DictDataField; pattern: RegExp }> =
+  [
+    { field: 'dictLabel', pattern: /字典名称|标签/ },
+    { field: 'dictValue', pattern: /字典编码|字典值|编码/ },
+    { field: 'dictSort', pattern: /排序|dictSort/i },
+    { field: 'cssClass', pattern: /标签样式|css/i },
+    { field: 'listClass', pattern: /列表样式|listClass/i },
+    { field: 'isDefault', pattern: /默认/ },
+    { field: 'status', pattern: /状态/ },
+    { field: 'remark', pattern: /备注/ },
+    { field: 'dictType', pattern: /字典类型|分组/ },
+  ]
 
 function extractServerErrors<TField extends string>(
   message: string | undefined,

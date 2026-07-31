@@ -1,28 +1,35 @@
 import { useEffect, useMemo, useState } from 'react'
+import type { AxiosError } from 'axios'
 import {
   keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { getCoreRowModel, type ColumnDef, useReactTable } from '@tanstack/react-table'
-import type { AxiosError } from 'axios'
+import {
+  getCoreRowModel,
+  type ColumnDef,
+  useReactTable,
+} from '@tanstack/react-table'
+import { useAccess } from '@/app/auth/access'
 import { RefreshCw, Trash2, Upload as UploadIcon } from 'lucide-react'
 import { toast } from 'sonner'
-import { useAccess } from '@/app/auth/access'
 import { type NavigateFn, useTableUrlState } from '@/hooks/use-table-url-state'
-import { ConfirmDialog } from '@/components/confirm-dialog'
-import { DataTablePagination, SelectionBulkActions } from '@/components/data-table'
-import { Header } from '@/components/layout/header'
-import { Main } from '@/components/layout/main'
-import { ProfileDropdown } from '@/components/profile-dropdown'
-import { Search } from '@/components/search'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import {
+  DataTablePagination,
+  SelectionBulkActions,
+} from '@/components/data-table'
+import { Header } from '@/components/layout/header'
+import { Main } from '@/components/layout/main'
+import { ProfileDropdown } from '@/components/profile-dropdown'
+import { Search } from '@/components/search'
 import { deleteFiles, fetchBlob, fetchFilePage } from './api'
 import { FilePreviewDialog } from './components/file-preview-dialog'
 import {
@@ -71,12 +78,13 @@ export function FileManagementPage({ search, navigate }: Props) {
     })
   }, [parsed.bizType, parsed.extension, parsed.originalName])
 
-  const { pagination, onPaginationChange, ensurePageInRange } = useTableUrlState({
-    search: parsed,
-    navigate,
-    pagination: { defaultPage: 1, defaultPageSize: 10 },
-    globalFilter: { enabled: false },
-  })
+  const { pagination, onPaginationChange, ensurePageInRange } =
+    useTableUrlState({
+      search: parsed,
+      navigate,
+      pagination: { defaultPage: 1, defaultPageSize: 10 },
+      globalFilter: { enabled: false },
+    })
 
   const query = useMemo(
     () => ({

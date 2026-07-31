@@ -2,9 +2,7 @@ import { hasPermission } from '@/app/auth/access'
 import type { AuthUser } from '@/types/auth'
 
 type RolePermissionSubject =
-  | Pick<AuthUser, 'roles' | 'permissions'>
-  | null
-  | undefined
+  Pick<AuthUser, 'roles' | 'permissions'> | null | undefined
 
 export type RoleManagementAccess = {
   canCreateRoles: boolean

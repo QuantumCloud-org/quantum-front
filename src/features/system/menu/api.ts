@@ -1,6 +1,6 @@
 import type { ApiResult } from '@/types/api'
-import { toId } from '@/lib/ids'
 import { apiClient } from '@/lib/http'
+import { toId } from '@/lib/ids'
 import {
   buildMenuCreatePayload,
   buildMenuUpdatePayload,
@@ -79,18 +79,23 @@ function normalizeMenuNode(input: unknown): MenuTreeNode {
 }
 
 export async function fetchMenuTree(search?: Partial<MenuListQuery>) {
-  const response = await apiClient.get<ApiResult<unknown[]>>('/system/menu/list', {
-    params: {
-      menuName: search?.menuName?.trim() || undefined,
-      status: search?.status,
-    },
-  })
+  const response = await apiClient.get<ApiResult<unknown[]>>(
+    '/system/menu/list',
+    {
+      params: {
+        menuName: search?.menuName?.trim() || undefined,
+        status: search?.status,
+      },
+    }
+  )
 
   return dedupeMenuTreeRoots(unwrapResult(response.data).map(normalizeMenuNode))
 }
 
 export async function fetchMenuDetail(menuId: string) {
-  const response = await apiClient.get<ApiResult<unknown>>(`/system/menu/${menuId}`)
+  const response = await apiClient.get<ApiResult<unknown>>(
+    `/system/menu/${menuId}`
+  )
 
   return normalizeMenuNode(unwrapResult(response.data)) as MenuDetail
 }

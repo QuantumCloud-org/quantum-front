@@ -1,8 +1,8 @@
-import { describe, expect, test } from 'bun:test'
-import { QueryClient } from '@tanstack/react-query'
 import { isValidElement, type ReactElement, type ReactNode } from 'react'
-import { SearchProvider } from '@/context/search-provider'
+import { QueryClient } from '@tanstack/react-query'
 import { Route as RootRoute } from '@/routes/__root'
+import { describe, expect, test } from 'bun:test'
+import { SearchProvider } from '@/context/search-provider'
 import { AppProviders } from './app-providers'
 
 type ElementWithChildren = ReactElement<{ children?: ReactNode }>

@@ -160,7 +160,10 @@ export function CheckableTree({
               onClick={() => toggleExpand(node.id)}
             >
               <ChevronRight
-                className={cn('h-4 w-4 transition-transform', isOpen && 'rotate-90')}
+                className={cn(
+                  'h-4 w-4 transition-transform',
+                  isOpen && 'rotate-90'
+                )}
               />
             </Button>
           ) : (
@@ -179,7 +182,9 @@ export function CheckableTree({
         </div>
 
         {hasChildren && isOpen ? (
-          <div>{node.children.map((child) => renderNode(child, depth + 1))}</div>
+          <div>
+            {node.children.map((child) => renderNode(child, depth + 1))}
+          </div>
         ) : null}
       </div>
     )

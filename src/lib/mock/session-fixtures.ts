@@ -1,6 +1,6 @@
 import { isSupportedBackendComponent } from '@/app/navigation/page-registry'
-import type { AuthUser } from '@/types/auth'
 import type { BackendMenuRouter } from '@/app/navigation/types'
+import type { AuthUser } from '@/types/auth'
 
 /**
  * Session + menu fixtures for the local demo (`VITE_FEATURE_MOCK=true`).

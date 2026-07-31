@@ -144,8 +144,8 @@ function FormMessage({ className, ...props }: React.ComponentProps<'p'>) {
       aria-live={hasMessage ? 'polite' : undefined}
       aria-hidden={hasMessage ? undefined : true}
       className={cn(
-        '-mt-1.5 min-h-[0.875rem] overflow-hidden text-[11px] leading-[0.875rem] text-destructive text-ellipsis whitespace-nowrap',
-        !hasMessage && 'select-none text-transparent',
+        '-mt-1.5 min-h-[0.875rem] overflow-hidden text-[11px] leading-[0.875rem] text-ellipsis whitespace-nowrap text-destructive',
+        !hasMessage && 'text-transparent select-none',
         className
       )}
       title={hasMessage && typeof body === 'string' ? body : undefined}

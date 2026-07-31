@@ -28,12 +28,11 @@ export const roleActionFormSchema = z.object({
     .trim()
     .min(1, '请输入显示顺序。')
     .refine((value) => /^\d+$/.test(value), '显示顺序必须为非负整数。'),
-  dataScope: z.string().refine(
-    (value) => isAllowedValue(value, ['1', '2', '3', '4', '5']),
-    {
+  dataScope: z
+    .string()
+    .refine((value) => isAllowedValue(value, ['1', '2', '3', '4', '5']), {
       message: '请选择数据权限范围。',
-    }
-  ),
+    }),
   status: z.string().refine((value) => isAllowedValue(value, ['0', '1']), {
     message: '请选择角色状态。',
   }),
