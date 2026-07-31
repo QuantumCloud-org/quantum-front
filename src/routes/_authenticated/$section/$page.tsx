@@ -1,9 +1,11 @@
+import { Suspense } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { ensureRouteAccess } from '@/app/auth/access'
 import { navigationQueryOptions } from '@/app/navigation/api'
-import { findBackendRouteByPath } from '@/app/navigation/registry'
 import { getBackendPageByPath } from '@/app/navigation/page-registry'
+import { findBackendRouteByPath } from '@/app/navigation/registry'
 import { dynamicPageSearchSchema } from '@/app/navigation/search-schema'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export const Route = createFileRoute('/_authenticated/$section/$page')({
   validateSearch: dynamicPageSearchSchema,
@@ -54,8 +56,25 @@ function RouteComponent() {
     return null
   }
 
-  return pageDefinition.render({
-    navigate,
-    search,
-  })
+  return (
+    <Suspense fallback={<BackendPageFallback />}>
+      {pageDefinition.render({
+        navigate,
+        search,
+      })}
+    </Suspense>
+  )
+}
+
+// Shown while a lazily-loaded page chunk arrives. Mirrors the common shape of
+// these pages (heading, toolbar, table) so the layout does not jump on swap.
+// eslint-disable-next-line react-refresh/only-export-components
+function BackendPageFallback() {
+  return (
+    <div className='space-y-4 p-4'>
+      <Skeleton className='h-8 w-48' />
+      <Skeleton className='h-10 w-full' />
+      <Skeleton className='h-64 w-full' />
+    </div>
+  )
 }

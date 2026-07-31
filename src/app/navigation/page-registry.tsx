@@ -1,15 +1,73 @@
+// This module deliberately colocates the lazy page components with the lookup
+// helpers that resolve them — splitting them apart would buy nothing but would
+// force every consumer to import two modules. The cost is that editing this file
+// does not fast-refresh those components; the registry changes rarely enough for
+// that to be an acceptable trade.
+/* eslint-disable react-refresh/only-export-components */
+import { lazy } from 'react'
 import { type NavigateFn } from '@/hooks/use-table-url-state'
-import { CacheMonitorPage } from '@/features/monitor/cache'
-import { LoginLogPage } from '@/features/monitor/login-log'
-import { OperLogPage } from '@/features/monitor/oper-log'
-import { OnlineUserPage } from '@/features/monitor/online'
-import { ServerMonitorPage } from '@/features/monitor/server'
-import { DepartmentManagementPage } from '@/features/system/dept'
-import { DictManagementPage } from '@/features/system/dict'
-import { FileManagementPage } from '@/features/system/file'
-import { MenuManagementPage } from '@/features/system/menu'
-import { RoleManagementPage } from '@/features/system/role'
-import { UserManagementPage } from '@/features/system/user'
+
+// Loaded lazily on purpose. This registry is reachable from the app shell
+// (search-provider → command-menu → navigation registry), so static imports here
+// pulled all eleven feature pages — recharts, tables and dialogs included — into
+// the first-paint modulepreload set. The route file split (autoCodeSplitting)
+// does not help, because pages are resolved through this map rather than through
+// route files. Only the metadata below stays eager; the code arrives on demand.
+const CacheMonitorPage = lazy(() =>
+  import('@/features/monitor/cache').then((m) => ({
+    default: m.CacheMonitorPage,
+  }))
+)
+const LoginLogPage = lazy(() =>
+  import('@/features/monitor/login-log').then((m) => ({
+    default: m.LoginLogPage,
+  }))
+)
+const OperLogPage = lazy(() =>
+  import('@/features/monitor/oper-log').then((m) => ({
+    default: m.OperLogPage,
+  }))
+)
+const OnlineUserPage = lazy(() =>
+  import('@/features/monitor/online').then((m) => ({
+    default: m.OnlineUserPage,
+  }))
+)
+const ServerMonitorPage = lazy(() =>
+  import('@/features/monitor/server').then((m) => ({
+    default: m.ServerMonitorPage,
+  }))
+)
+const DepartmentManagementPage = lazy(() =>
+  import('@/features/system/dept').then((m) => ({
+    default: m.DepartmentManagementPage,
+  }))
+)
+const DictManagementPage = lazy(() =>
+  import('@/features/system/dict').then((m) => ({
+    default: m.DictManagementPage,
+  }))
+)
+const FileManagementPage = lazy(() =>
+  import('@/features/system/file').then((m) => ({
+    default: m.FileManagementPage,
+  }))
+)
+const MenuManagementPage = lazy(() =>
+  import('@/features/system/menu').then((m) => ({
+    default: m.MenuManagementPage,
+  }))
+)
+const RoleManagementPage = lazy(() =>
+  import('@/features/system/role').then((m) => ({
+    default: m.RoleManagementPage,
+  }))
+)
+const UserManagementPage = lazy(() =>
+  import('@/features/system/user').then((m) => ({
+    default: m.UserManagementPage,
+  }))
+)
 
 export type BackendPageProps = {
   search: Record<string, unknown>
