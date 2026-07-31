@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import type { ApiResult } from '@/types/api'
 import type {
   AuthUser,
@@ -10,6 +11,30 @@ import { MOCK_DEMO_USER } from '@/lib/mock/session-fixtures'
 
 function unwrapResult<T>(result: ApiResult<T>) {
   return result.data
+}
+
+// Only the fields the authorization path depends on. Loose so every other
+// backend field passes through untouched.
+const authUserSchema = z.looseObject({
+  id: z.union([z.string(), z.number()]).transform(String),
+  username: z.string().min(1),
+  nickname: z.string().default(''),
+  roles: z.array(z.string()).default([]),
+  permissions: z.array(z.string()).default([]),
+})
+
+/**
+ * Validates an `/auth/info` payload at the network trust boundary.
+ *
+ * @param payload - Raw `data` field of the backend response.
+ * @returns The user, guaranteed to carry id / username / roles / permissions.
+ * @throws {z.ZodError} When the payload is absent or lacks an identity, so the
+ * caller fails closed instead of proceeding with a null user.
+ */
+export function parseAuthUser(payload: unknown): AuthUser {
+  // Safe: the schema enforces every field AuthUser requires, and looseObject
+  // preserves the optional ones the backend sends verbatim.
+  return authUserSchema.parse(payload) as AuthUser
 }
 
 export async function fetchCaptcha() {
@@ -36,9 +61,9 @@ export async function fetchCurrentUser() {
     return MOCK_DEMO_USER
   }
 
-  const response = await apiClient.get<ApiResult<AuthUser>>('/auth/info')
+  const response = await apiClient.get<ApiResult<unknown>>('/auth/info')
 
-  return unwrapResult(response.data)
+  return parseAuthUser(unwrapResult(response.data))
 }
 
 export async function logoutCurrentUser() {

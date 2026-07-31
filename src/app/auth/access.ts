@@ -1,6 +1,6 @@
 import { redirect } from '@tanstack/react-router'
-import { useAuthStore } from '@/stores/auth-store'
 import type { AuthUser } from '@/types/auth'
+import { useAuthStore } from '@/stores/auth-store'
 
 const SUPER_ADMIN_ROLE = 'admin'
 const SUPER_ADMIN_PERMISSION = '*:*:*'
@@ -28,7 +28,8 @@ export function hasRole(
   }
 
   return (
-    includesValue(user.roles, SUPER_ADMIN_ROLE) || includesValue(user.roles, role)
+    includesValue(user.roles, SUPER_ADMIN_ROLE) ||
+    includesValue(user.roles, role)
   )
 }
 
@@ -87,8 +88,17 @@ export function useAccess(requirement: AccessRequirement) {
 
 export function ensureRouteAccess(requirement: RouteAccessRequirement) {
   const user = useAuthStore.getState().user
+
+  // Fail closed. A session that reached a guarded route without a resolved user
+  // has no permissions to check against, so it must be sent back to sign-in
+  // rather than fall through the permission test below.
   if (!user) {
-    return
+    throw redirect({
+      to: '/sign-in',
+      search: {
+        redirect: requirement.locationHref,
+      },
+    })
   }
 
   if (hasAccess(user, requirement)) {
