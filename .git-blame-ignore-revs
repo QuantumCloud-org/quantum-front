@@ -1,0 +1,8 @@
+# Commits listed here are skipped by `git blame`, so a bulk reformat does not
+# hide the author of the line's actual last meaningful change.
+#
+# GitHub honours this file automatically. For local git, enable it once with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# style: 全仓 prettier 格式化, 让 format:check 恢复可用 (2026-07-31)
+fc7d2a0f36b3dc4992636f5c83e0ecbb5c341d10
