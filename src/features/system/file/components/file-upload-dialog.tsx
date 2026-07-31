@@ -14,9 +14,11 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { uploadFile } from '../api'
-import { BIZ_TYPE_OPTIONS } from '../model'
-
-const MAX_MB = 100
+import {
+  BIZ_TYPE_OPTIONS,
+  MAX_UPLOAD_SIZE_MB,
+  getUploadRejectionReason,
+} from '../model'
 
 type Props = {
   open: boolean
@@ -52,10 +54,13 @@ export function FileUploadDialog({
 
   function handleSelect(selected: File | null) {
     if (!selected) return
-    if (selected.size > MAX_MB * 1024 * 1024) {
-      toast.error(`文件超出 ${MAX_MB}MB 限制`)
+
+    const rejection = getUploadRejectionReason(selected)
+    if (rejection) {
+      toast.error(rejection)
       return
     }
+
     setFile(selected)
   }
 
@@ -78,8 +83,7 @@ export function FileUploadDialog({
       onUploaded()
     } catch (err) {
       const message =
-        (err as AxiosError<{ msg?: string }>)?.response?.data?.msg ??
-        '上传失败'
+        (err as AxiosError<{ msg?: string }>)?.response?.data?.msg ?? '上传失败'
       toast.error(message)
     } finally {
       setUploading(false)
@@ -127,7 +131,7 @@ export function FileUploadDialog({
             </span>
           )}
           <span className='text-xs text-muted-foreground'>
-            最大 {MAX_MB}MB · 禁止 exe/bat/sh 等危险类型
+            最大 {MAX_UPLOAD_SIZE_MB}MB · 禁止 exe/bat/sh 等危险类型
           </span>
           <input
             ref={inputRef}

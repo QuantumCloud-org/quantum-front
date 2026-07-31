@@ -60,6 +60,65 @@ export const PREVIEWABLE_EXTENSIONS = new Set([
   'pdf',
 ])
 
+export const MAX_UPLOAD_SIZE_MB = 100
+
+/**
+ * Extensions refused at the picker. This mirrors what the upload dialog tells
+ * the user; it is a convenience guard, not a security boundary — the server
+ * still has to validate every upload it accepts.
+ */
+export const BLOCKED_UPLOAD_EXTENSIONS = new Set([
+  'exe',
+  'bat',
+  'sh',
+  'cmd',
+  'com',
+  'scr',
+  'msi',
+  'dll',
+  'jar',
+  'ps1',
+  'vbs',
+  'wsf',
+  'hta',
+  'cpl',
+  'pif',
+  'reg',
+])
+
+/** Trailing extension in lowercase, or '' when the name carries none. */
+export function getFileExtension(name: string) {
+  const lastDot = name.lastIndexOf('.')
+  if (lastDot === -1 || lastDot === name.length - 1) {
+    return ''
+  }
+
+  return name.slice(lastDot + 1).toLowerCase()
+}
+
+/**
+ * Validates a picked file against the size ceiling and the blocked extension
+ * list.
+ *
+ * @param file - Name and byte size of the picked file.
+ * @returns A user-facing rejection reason, or null when the file is acceptable.
+ */
+export function getUploadRejectionReason(file: {
+  name: string
+  size: number
+}): string | null {
+  if (file.size > MAX_UPLOAD_SIZE_MB * 1024 * 1024) {
+    return `文件超出 ${MAX_UPLOAD_SIZE_MB}MB 限制`
+  }
+
+  const extension = getFileExtension(file.name)
+  if (extension && BLOCKED_UPLOAD_EXTENSIONS.has(extension)) {
+    return `不支持上传 .${extension} 类型的文件`
+  }
+
+  return null
+}
+
 export function formatFileSize(size: number) {
   if (!size && size !== 0) {
     return '-'
