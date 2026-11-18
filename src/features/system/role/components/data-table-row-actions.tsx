@@ -12,6 +12,7 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { type ServerTableFeatures } from '@/components/data-table/server-table-features'
 import { type Role } from '../model'
 import {
   getRoleManagementAccess,
@@ -22,7 +23,7 @@ import { useRoles } from './roles-provider'
 import { RolesStatusDialog } from './roles-status-dialog'
 
 type DataTableRowActionsProps = {
-  row: Row<Role>
+  row: Row<ServerTableFeatures, Role>
 }
 
 function runAfterMenuCloses(callback: () => void) {

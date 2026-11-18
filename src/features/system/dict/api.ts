@@ -1,4 +1,6 @@
+import { isAxiosError } from 'axios'
 import type { ApiResult } from '@/types/api'
+import { getRecord } from '@/lib/api-normalize'
 import { apiClient } from '@/lib/http'
 import { toId } from '@/lib/ids'
 import {
@@ -14,17 +16,6 @@ import {
   type DictTypeListQuery,
   type PagedResult,
 } from './model'
-
-function unwrapResult<T>(result: ApiResult<T>) {
-  return result.data
-}
-
-function getRecord(input: unknown) {
-  return (input && typeof input === 'object' ? input : {}) as Record<
-    string,
-    unknown
-  >
-}
 
 function toNullableText(value: unknown) {
   if (typeof value !== 'string') {
@@ -47,7 +38,9 @@ function normalizeDictType(input: unknown): DictType {
   const record = getRecord(input)
   return {
     id: toId(record.id),
+    version: toId(record.version),
     dictName: String(record.dictName ?? ''),
+    business: toNullableText(record.business),
     dictType: String(record.dictType ?? ''),
     status: normalizeStatus(record.status),
     remark: toNullableText(record.remark),
@@ -59,6 +52,7 @@ function normalizeDictData(input: unknown): DictData {
   const record = getRecord(input)
   return {
     id: toId(record.id),
+    version: toId(record.version),
     dictType: String(record.dictType ?? ''),
     dictLabel: String(record.dictLabel ?? ''),
     dictValue: String(record.dictValue ?? ''),
@@ -86,7 +80,7 @@ export async function fetchDictTypePage(query?: Partial<DictTypeListQuery>) {
     }
   )
 
-  const page = unwrapResult(response.data)
+  const page = response.data.data
   return {
     pageNum: Number(page.pageNum ?? 1),
     pageSize: Number(page.pageSize ?? 2000),
@@ -102,16 +96,26 @@ export async function createDictType(input: DictTypeFormInput) {
     buildDictTypePayload(input)
   )
 
-  return toId(unwrapResult(response.data))
+  return toId(response.data.data)
 }
 
-export async function updateDictType(input: DictTypeFormInput) {
-  const response = await apiClient.put<ApiResult<null>>(
-    '/system/dict/type',
-    buildDictTypePayload(input)
-  )
+/** Updates a dictionary type using its original code and optimistic-lock version. */
+export async function updateDictType({
+  values,
+  original,
+}: {
+  values: DictTypeFormInput
+  original: Pick<DictType, 'id' | 'version' | 'dictType' | 'business'>
+}) {
+  const response = await apiClient.put<ApiResult<null>>('/system/dict/type', {
+    ...buildDictTypePayload(
+      { ...values, dictType: original.dictType },
+      original.business
+    ),
+    ...dictUpdateIdentity(original),
+  })
 
-  return unwrapResult(response.data)
+  return response.data.data
 }
 
 export async function deleteDictTypes(ids: string[]) {
@@ -119,7 +123,7 @@ export async function deleteDictTypes(ids: string[]) {
     `/system/dict/type/${ids.join(',')}`
   )
 
-  return unwrapResult(response.data)
+  return response.data.data
 }
 
 export async function refreshDictCache() {
@@ -127,22 +131,33 @@ export async function refreshDictCache() {
     '/system/dict/type/refreshCache'
   )
 
-  return unwrapResult(response.data)
+  return response.data.data
 }
 
-export async function fetchDictDataList(query: DictDataListQuery) {
-  const response = await apiClient.get<ApiResult<unknown[]>>(
+/** Loads one server page of dictionary items. */
+export async function fetchDictDataPage(
+  query: DictDataListQuery,
+  signal?: AbortSignal
+) {
+  const response = await apiClient.get<ApiResult<PagedResult<unknown>>>(
     '/system/dict/data/list',
     {
       params: {
+        pageNum: query.pageNum,
+        pageSize: query.pageSize,
         dictType: query.dictType,
         dictLabel: query.dictLabel?.trim() || undefined,
         status: query.status,
       },
+      signal,
     }
   )
 
-  return unwrapResult(response.data).map(normalizeDictData)
+  const page = response.data.data
+  return {
+    total: Number(page.total),
+    records: page.records.map(normalizeDictData),
+  }
 }
 
 export async function createDictData(input: DictDataFormInput) {
@@ -151,16 +166,23 @@ export async function createDictData(input: DictDataFormInput) {
     buildDictDataPayload(input)
   )
 
-  return toId(unwrapResult(response.data))
+  return toId(response.data.data)
 }
 
-export async function updateDictData(input: DictDataFormInput) {
-  const response = await apiClient.put<ApiResult<null>>(
-    '/system/dict/data',
-    buildDictDataPayload(input)
-  )
+/** Updates a dictionary item using its optimistic-lock version. */
+export async function updateDictData({
+  values,
+  original,
+}: {
+  values: DictDataFormInput
+  original: Pick<DictData, 'id' | 'version'>
+}) {
+  const response = await apiClient.put<ApiResult<null>>('/system/dict/data', {
+    ...buildDictDataPayload(values),
+    ...dictUpdateIdentity(original),
+  })
 
-  return unwrapResult(response.data)
+  return response.data.data
 }
 
 export async function deleteDictData(ids: string[]) {
@@ -168,5 +190,35 @@ export async function deleteDictData(ids: string[]) {
     `/system/dict/data/${ids.join(',')}`
   )
 
-  return unwrapResult(response.data)
+  return response.data.data
+}
+
+function dictUpdateIdentity(record: { id: string; version: string }) {
+  const id = toId(record.id)
+  const version = toId(record.version)
+  if (!id || !version) throw new Error('字典记录缺少 ID 或版本，请刷新后重试。')
+  return { id, version }
+}
+
+async function fetchDictDetail<T>(
+  path: string,
+  normalize: (data: unknown) => T
+): Promise<T | null> {
+  try {
+    const response = await apiClient.get<ApiResult<unknown>>(path)
+    return response.data.data == null ? null : normalize(response.data.data)
+  } catch (error) {
+    if (isAxiosError(error) && error.response?.status === 404) return null
+    throw error
+  }
+}
+
+/** Returns the visible dictionary type, or null if it cannot be found. */
+export function fetchDictTypeDetail(id: string) {
+  return fetchDictDetail(`/system/dict/type/${id}`, normalizeDictType)
+}
+
+/** Returns the visible dictionary item, or null if it cannot be found. */
+export function fetchDictDataDetail(id: string) {
+  return fetchDictDetail(`/system/dict/data/${id}`, normalizeDictData)
 }

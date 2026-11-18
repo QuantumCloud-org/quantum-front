@@ -1,4 +1,5 @@
 import type { ApiResult } from '@/types/api'
+import { getRecord } from '@/lib/api-normalize'
 import { apiClient } from '@/lib/http'
 import { toId } from '@/lib/ids'
 import {
@@ -7,23 +8,13 @@ import {
   dedupeMenuTreeRoots,
   type BoolFlag,
   type MenuDetail,
+  type MenuEditTarget,
   type MenuFormInput,
   type MenuListQuery,
   type MenuStatus,
   type MenuTreeNode,
   type MenuType,
 } from './model'
-
-function unwrapResult<T>(result: ApiResult<T>) {
-  return result.data
-}
-
-function getRecord(input: unknown) {
-  return (input && typeof input === 'object' ? input : {}) as Record<
-    string,
-    unknown
-  >
-}
 
 function normalizeMenuType(value: unknown): MenuType {
   if (value === 'C' || value === 'F') {
@@ -58,6 +49,7 @@ function normalizeMenuNode(input: unknown): MenuTreeNode {
 
   return {
     menuId: toId(record.menuId ?? record.id) || '0',
+    version: toId(record.version),
     parentId: toId(record.parentId) || '0',
     menuName: String(record.menuName ?? record.label ?? ''),
     orderNum: Number(record.orderNum ?? 0),
@@ -89,7 +81,7 @@ export async function fetchMenuTree(search?: Partial<MenuListQuery>) {
     }
   )
 
-  return dedupeMenuTreeRoots(unwrapResult(response.data).map(normalizeMenuNode))
+  return dedupeMenuTreeRoots(response.data.data.map(normalizeMenuNode))
 }
 
 export async function fetchMenuDetail(menuId: string) {
@@ -97,7 +89,7 @@ export async function fetchMenuDetail(menuId: string) {
     `/system/menu/${menuId}`
   )
 
-  return normalizeMenuNode(unwrapResult(response.data)) as MenuDetail
+  return normalizeMenuNode(response.data.data) as MenuDetail
 }
 
 export async function createMenu(input: MenuFormInput) {
@@ -106,17 +98,17 @@ export async function createMenu(input: MenuFormInput) {
     buildMenuCreatePayload(input)
   )
 
-  const data = unwrapResult(response.data)
+  const data = response.data.data
   return toId(data)
 }
 
-export async function updateMenu(input: MenuFormInput, menuId: string) {
+export async function updateMenu(input: MenuFormInput, target: MenuEditTarget) {
   const response = await apiClient.put<ApiResult<null>>(
     '/system/menu',
-    buildMenuUpdatePayload(input, menuId)
+    buildMenuUpdatePayload(input, target)
   )
 
-  return unwrapResult(response.data)
+  return response.data.data
 }
 
 export async function deleteMenu(menuId: string) {
@@ -124,5 +116,5 @@ export async function deleteMenu(menuId: string) {
     `/system/menu/${menuId}`
   )
 
-  return unwrapResult(response.data)
+  return response.data.data
 }

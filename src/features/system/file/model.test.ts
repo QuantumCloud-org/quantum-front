@@ -3,6 +3,7 @@ import {
   MAX_UPLOAD_SIZE_MB,
   canPreview,
   formatFileSize,
+  getPreviewMimeType,
   getUploadRejectionReason,
 } from './model'
 
@@ -69,4 +70,12 @@ describe('canPreview', () => {
     expect(canPreview('docx')).toBe(false)
     expect(canPreview(null)).toBe(false)
   })
+})
+
+test('inline file previews use an allowlist of known MIME types', () => {
+  expect(getPreviewMimeType('PDF')).toBe('application/pdf')
+  expect(getPreviewMimeType('jpeg')).toBe('image/jpeg')
+  expect(getPreviewMimeType('html')).toBeUndefined()
+  expect(canPreview('svg')).toBe(false)
+  expect(canPreview('constructor')).toBe(false)
 })

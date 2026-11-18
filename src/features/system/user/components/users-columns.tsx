@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableColumnHeader } from '@/components/data-table'
+import { type ServerTableFeatures } from '@/components/data-table/server-table-features'
 import { LongText } from '@/components/long-text'
 import {
   getUserSexLabel,
@@ -34,7 +35,7 @@ function formatDateTimeCell(value: string | null) {
   })
 }
 
-const usersColumns: ColumnDef<User>[] = [
+const usersColumns: ColumnDef<ServerTableFeatures, User>[] = [
   {
     id: 'select',
     header: ({ table }) => (
@@ -47,7 +48,7 @@ const usersColumns: ColumnDef<User>[] = [
         aria-label='全选'
         disabled={
           !table
-            .getPaginationRowModel()
+            .getPaginatedRowModel()
             .flatRows.some((row) => row.getCanSelect())
         }
         className='translate-y-[2px]'

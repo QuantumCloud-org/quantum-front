@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate, useRouter } from '@tanstack/react-router'
 import { toast } from 'sonner'
+import { sanitizeRedirect } from '@/lib/sanitize-redirect'
 import { Button } from '@/components/ui/button'
 
 type ForbiddenErrorProps = {
@@ -16,6 +17,7 @@ export function ForbiddenError({
 }: ForbiddenErrorProps = {}) {
   const navigate = useNavigate()
   const { history } = useRouter()
+  const safeRedirect = sanitizeRedirect(redirect)
 
   useEffect(() => {
     if (!autoRedirectToSignIn) {
@@ -25,9 +27,9 @@ export function ForbiddenError({
     toast.error(message || '账号已被禁用')
 
     const timeoutId = window.setTimeout(() => {
-      navigate({
+      void navigate({
         to: '/sign-in',
-        search: redirect ? { redirect } : undefined,
+        search: { redirect: safeRedirect },
         replace: true,
       })
     }, 1500)
@@ -35,7 +37,7 @@ export function ForbiddenError({
     return () => {
       window.clearTimeout(timeoutId)
     }
-  }, [autoRedirectToSignIn, message, navigate, redirect])
+  }, [autoRedirectToSignIn, message, navigate, safeRedirect])
 
   return (
     <div className='h-svh'>
@@ -64,15 +66,15 @@ export function ForbiddenError({
             返回上一页
           </Button>
           <Button
-            onClick={() =>
-              autoRedirectToSignIn
+            onClick={() => {
+              void (autoRedirectToSignIn
                 ? navigate({
                     to: '/sign-in',
-                    search: redirect ? { redirect } : undefined,
+                    search: { redirect: safeRedirect },
                     replace: true,
                   })
-                : navigate({ to: '/' })
-            }
+                : navigate({ to: '/' }))
+            }}
           >
             {autoRedirectToSignIn ? '立即前往登录' : '返回首页'}
           </Button>

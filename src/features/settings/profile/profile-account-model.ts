@@ -12,8 +12,8 @@ export type ProfileFormValues = {
 export function buildProfileFormValues(user: AuthUser): ProfileFormValues {
   return {
     nickname: user.nickname ?? '',
-    email: user.email ?? '',
-    phone: user.phone ?? '',
+    email: '',
+    phone: '',
     sex: String(user.sex ?? 0) as '0' | '1' | '2',
     remark: user.remark ?? '',
   }
@@ -32,11 +32,14 @@ export function buildProfileUpdatePayload(
     throw new Error('当前用户版本号缺失')
   }
 
+  const email = normalizeOptionalText(values.email)
+  const phone = normalizeOptionalText(values.phone)
+
   return {
     version: user.version,
     nickname: values.nickname.trim(),
-    email: normalizeOptionalText(values.email),
-    phone: normalizeOptionalText(values.phone),
+    ...(email && email !== user.email ? { email } : {}),
+    ...(phone && phone !== user.phone ? { phone } : {}),
     sex: Number(values.sex),
     remark: normalizeOptionalText(values.remark),
   }

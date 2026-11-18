@@ -191,7 +191,12 @@ export function FileUploadDialog({
           >
             取消
           </Button>
-          <Button onClick={handleUpload} disabled={uploading || !file}>
+          <Button
+            onClick={() => {
+              void handleUpload()
+            }}
+            disabled={uploading || !file}
+          >
             {uploading ? '上传中…' : '上传'}
           </Button>
         </DialogFooter>

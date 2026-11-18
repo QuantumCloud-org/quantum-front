@@ -9,16 +9,18 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { DataTableBulkActions as BulkActionsToolbar } from '@/components/data-table'
+import { type ServerTableFeatures } from '@/components/data-table/server-table-features'
+import { type User } from '../data/schema'
 import { UsersMultiDeleteDialog } from './users-multi-delete-dialog'
 
-type DataTableBulkActionsProps<TData> = {
-  table: Table<TData>
+type DataTableBulkActionsProps = {
+  table: Table<ServerTableFeatures, User>
 }
 
-export function DataTableBulkActions<TData>({
-  table,
-}: DataTableBulkActionsProps<TData>) {
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+export function DataTableBulkActions({ table }: DataTableBulkActionsProps) {
+  const [deleteTargets, setDeleteTargets] = useState<
+    { id: string; name: string }[] | null
+  >(null)
   const canDeleteUsers = useAccess({
     permissions: ['system:user:remove'],
   })
@@ -35,7 +37,15 @@ export function DataTableBulkActions<TData>({
             <Button
               variant='destructive'
               size='icon'
-              onClick={() => setShowDeleteConfirm(true)}
+              onClick={() => {
+                const targets = table
+                  .getSelectedRowModel()
+                  .rows.map(({ original }) => ({
+                    id: original.id,
+                    name: original.username,
+                  }))
+                if (targets.length > 0) setDeleteTargets(targets)
+              }}
               className='size-8'
               aria-label='删除所选用户'
               title='删除所选用户'
@@ -52,8 +62,10 @@ export function DataTableBulkActions<TData>({
 
       <UsersMultiDeleteDialog
         table={table}
-        open={showDeleteConfirm}
-        onOpenChange={setShowDeleteConfirm}
+        targets={deleteTargets}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTargets(null)
+        }}
       />
     </>
   )

@@ -1,11 +1,12 @@
 import { toId, toIdList } from '@/lib/ids'
 
 export type RoleStatus = 0 | 1
-export type RoleStatusFilter = 'active' | 'inactive'
+type RoleStatusFilter = 'active' | 'inactive'
 export type RoleDataScope = 1 | 2 | 3 | 4 | 5
 
 export type Role = {
   id: string
+  version: string
   roleName: string
   roleKey: string
   orderNum: number
@@ -14,8 +15,6 @@ export type Role = {
   remark: string | null
   createTime: string | null
 }
-
-export type RoleDetail = Role
 
 export type PagedResult<T> = {
   pageNum: number
@@ -54,6 +53,7 @@ export type RoleCreateFormInput = {
 
 export type RoleUpdateFormInput = RoleCreateFormInput & {
   id: string
+  version: string
 }
 
 export type RoleStatusUpdateInput = {
@@ -119,6 +119,7 @@ export function buildRoleCreatePayload(input: RoleCreateFormInput) {
 export function buildRoleUpdatePayload(input: RoleUpdateFormInput) {
   return {
     id: toId(input.id),
+    version: toId(input.version),
     ...buildRoleBasePayload(input),
   }
 }

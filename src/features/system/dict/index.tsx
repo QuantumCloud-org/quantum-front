@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { AxiosError } from 'axios'
 import {
+  queryOptions,
   keepPreviousData,
   useMutation,
   useQuery,
@@ -10,18 +11,11 @@ import { useAccess } from '@/app/auth/access'
 import type { ApiResult } from '@/types/api'
 import { BookOpenText, Plus, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
+import { queryKeys } from '@/lib/query-keys'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -33,14 +27,19 @@ import {
   createDictType,
   deleteDictData,
   deleteDictTypes,
-  fetchDictDataList,
+  fetchDictDataDetail,
+  fetchDictDataPage,
+  fetchDictTypeDetail,
   fetchDictTypePage,
   refreshDictCache,
   updateDictData,
   updateDictType,
 } from './api'
 import { DictDataDialog } from './components/dict-data-dialog'
+import { DictDataPagination } from './components/dict-data-pagination'
+import { DictDataTable } from './components/dict-data-table'
 import { DictTypeDialog } from './components/dict-type-dialog'
+import { getStatusBadge } from './dict-status'
 import {
   formatDateTime,
   type DictData,
@@ -62,37 +61,10 @@ function normalizeStatusFilter(value: string) {
   return undefined
 }
 
-function getStatusBadge(status: DictStatus) {
-  return status === 1
-    ? {
-        label: '正常',
-        className:
-          'border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300',
-      }
-    : {
-        label: '停用',
-        className:
-          'border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300',
-      }
-}
-
-function getDefaultBadge(isDefault: DictData['isDefault']) {
-  return isDefault === 'Y'
-    ? {
-        label: '默认',
-        className:
-          'border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300',
-      }
-    : {
-        label: '普通',
-        className:
-          'border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300',
-      }
-}
-
 export function DictManagementPage() {
   const queryClient = useQueryClient()
   const canAdd = useAccess({ permissions: ['system:dict:add'] })
+  const canReadDetail = useAccess({ permissions: ['system:dict:detail'] })
   const canEdit = useAccess({ permissions: ['system:dict:edit'] })
   const canRemove = useAccess({ permissions: ['system:dict:remove'] })
   const canRefresh = useAccess({ permissions: ['system:dict:refreshCache'] })
@@ -109,6 +81,11 @@ export function DictManagementPage() {
 
   const [dataKeyword, setDataKeyword] = useState('')
   const [dataStatus, setDataStatus] = useState('all')
+  const [dataPagination, setDataPagination] = useState({
+    dictType: '',
+    pageNum: 1,
+    pageSize: 10,
+  })
   const [dictDataDialogOpen, setDictDataDialogOpen] = useState(false)
   const [editingData, setEditingData] = useState<DictData | undefined>()
   const [deleteDataTarget, setDeleteDataTarget] = useState<DictData | null>(
@@ -123,11 +100,13 @@ export function DictManagementPage() {
     [typeKeyword, typeStatus]
   )
 
-  const typePageQuery = useQuery({
-    queryKey: ['system', 'dict', 'types', typeQueryParams],
-    queryFn: () => fetchDictTypePage(typeQueryParams),
-    placeholderData: keepPreviousData,
-  })
+  const typePageQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.dictTypes(typeQueryParams),
+      queryFn: () => fetchDictTypePage(typeQueryParams),
+      placeholderData: keepPreviousData,
+    })
+  )
 
   const dictTypes = typePageQuery.data?.records ?? []
   const resolvedSelectedTypeId =
@@ -137,34 +116,57 @@ export function DictManagementPage() {
   const selectedType =
     dictTypes.find((item) => item.id === resolvedSelectedTypeId) ?? null
 
+  const { pageSize } = dataPagination
+  const pageNum =
+    selectedType?.dictType === dataPagination.dictType
+      ? dataPagination.pageNum
+      : 1
   const dataQueryParams = useMemo(
     () =>
       selectedType
         ? {
+            pageNum,
+            pageSize,
             dictType: selectedType.dictType,
             dictLabel: dataKeyword || undefined,
             status: normalizeStatusFilter(dataStatus),
           }
         : null,
-    [dataKeyword, dataStatus, selectedType]
+    [dataKeyword, dataStatus, pageNum, pageSize, selectedType]
   )
 
-  const dictDataQuery = useQuery({
-    queryKey: ['system', 'dict', 'data', dataQueryParams],
-    queryFn: () => fetchDictDataList(dataQueryParams!),
-    enabled: Boolean(dataQueryParams && canListData),
-    placeholderData: keepPreviousData,
-  })
+  const dictDataQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.dictData(dataQueryParams ?? undefined),
+      queryFn: ({ signal }) => fetchDictDataPage(dataQueryParams!, signal),
+      enabled: Boolean(dataQueryParams && canListData),
+    })
+  )
 
-  const dictData = dictDataQuery.data ?? []
+  const dictData = dictDataQuery.data?.records ?? []
+  const dataTotal = dictDataQuery.data?.total ?? 0
+  const dataPageCount = Math.max(1, Math.ceil(dataTotal / pageSize))
+
+  function setDataPage(nextPage: number, nextSize = pageSize) {
+    setDataPagination({
+      dictType: selectedType?.dictType ?? '',
+      pageNum: nextPage,
+      pageSize: nextSize,
+    })
+  }
+
+  function selectType(id: string | null) {
+    setSelectedTypeId(id)
+    setDataPage(1)
+  }
 
   const createTypeMutation = useMutation({
     mutationFn: createDictType,
     onSuccess: async (nextId) => {
       toast.success('字典分组已创建。')
-      setSelectedTypeId(nextId || null)
+      selectType(nextId || null)
       await queryClient.invalidateQueries({
-        queryKey: ['system', 'dict', 'types'],
+        queryKey: queryKeys.dictTypes(),
       })
     },
   })
@@ -174,10 +176,10 @@ export function DictManagementPage() {
     onSuccess: async () => {
       toast.success('字典分组已更新。')
       await queryClient.invalidateQueries({
-        queryKey: ['system', 'dict', 'types'],
+        queryKey: queryKeys.dictTypes(),
       })
       await queryClient.invalidateQueries({
-        queryKey: ['system', 'dict', 'data'],
+        queryKey: queryKeys.dictData(),
       })
     },
   })
@@ -188,10 +190,10 @@ export function DictManagementPage() {
       toast.success('字典分组已删除。')
       setDeleteTypeTarget(null)
       await queryClient.invalidateQueries({
-        queryKey: ['system', 'dict', 'types'],
+        queryKey: queryKeys.dictTypes(),
       })
       await queryClient.invalidateQueries({
-        queryKey: ['system', 'dict', 'data'],
+        queryKey: queryKeys.dictData(),
       })
     },
     onError: (error) => {
@@ -216,7 +218,7 @@ export function DictManagementPage() {
     onSuccess: async () => {
       toast.success('字典项已创建。')
       await queryClient.invalidateQueries({
-        queryKey: ['system', 'dict', 'data'],
+        queryKey: queryKeys.dictData(),
       })
     },
   })
@@ -226,7 +228,7 @@ export function DictManagementPage() {
     onSuccess: async () => {
       toast.success('字典项已更新。')
       await queryClient.invalidateQueries({
-        queryKey: ['system', 'dict', 'data'],
+        queryKey: queryKeys.dictData(),
       })
     },
   })
@@ -236,8 +238,9 @@ export function DictManagementPage() {
     onSuccess: async () => {
       toast.success('字典项已删除。')
       setDeleteDataTarget(null)
+      if (dictData.length === 1 && pageNum > 1) setDataPage(pageNum - 1)
       await queryClient.invalidateQueries({
-        queryKey: ['system', 'dict', 'data'],
+        queryKey: queryKeys.dictData(),
       })
     },
     onError: (error) => {
@@ -252,10 +255,19 @@ export function DictManagementPage() {
     setDictTypeDialogOpen(true)
   }
 
-  function openEditTypeDialog(type: DictType) {
-    setEditingType(type)
-    setDictTypeDialogOpen(true)
-  }
+  const openTypeEditor = useMutation({
+    mutationFn: (type: DictType) =>
+      canReadDetail ? fetchDictTypeDetail(type.id) : Promise.resolve(type),
+    onSuccess: (type) => {
+      if (!type) {
+        toast.info('字典分组不存在或已不可见。')
+        void queryClient.invalidateQueries({ queryKey: queryKeys.dictTypes() })
+        return
+      }
+      setEditingType(type)
+      setDictTypeDialogOpen(true)
+    },
+  })
 
   function openCreateDataDialog() {
     if (!selectedType) {
@@ -265,10 +277,19 @@ export function DictManagementPage() {
     setDictDataDialogOpen(true)
   }
 
-  function openEditDataDialog(data: DictData) {
-    setEditingData(data)
-    setDictDataDialogOpen(true)
-  }
+  const openDataEditor = useMutation({
+    mutationFn: (data: DictData) =>
+      canReadDetail ? fetchDictDataDetail(data.id) : Promise.resolve(data),
+    onSuccess: (data) => {
+      if (!data) {
+        toast.info('字典项不存在或已不可见。')
+        void queryClient.invalidateQueries({ queryKey: queryKeys.dictData() })
+        return
+      }
+      setEditingData(data)
+      setDictDataDialogOpen(true)
+    },
+  })
 
   return (
     <>
@@ -326,14 +347,20 @@ export function DictManagementPage() {
                 <div className='grid grid-cols-[minmax(0,1fr)_112px] gap-2'>
                   <Input
                     value={typeKeyword}
-                    onChange={(event) => setTypeKeyword(event.target.value)}
+                    onChange={(event) => {
+                      setTypeKeyword(event.target.value)
+                      setDataPage(1)
+                    }}
                     placeholder='搜索分组名称'
                   />
                   <SelectDropdown
                     isControlled
                     withFormControl={false}
                     value={typeStatus}
-                    onValueChange={setTypeStatus}
+                    onValueChange={(value) => {
+                      setTypeStatus(value)
+                      setDataPage(1)
+                    }}
                     items={statusOptions.map((option) => ({ ...option }))}
                   />
                 </div>
@@ -363,11 +390,11 @@ export function DictManagementPage() {
                           className={`flex w-full items-start justify-between gap-3 px-4 py-3 text-left transition-colors ${
                             isActive ? 'bg-primary/8' : 'hover:bg-muted/40'
                           }`}
-                          onClick={() => setSelectedTypeId(item.id)}
+                          onClick={() => selectType(item.id)}
                           onKeyDown={(event) => {
                             if (event.key === 'Enter' || event.key === ' ') {
                               event.preventDefault()
-                              setSelectedTypeId(item.id)
+                              selectType(item.id)
                             }
                           }}
                         >
@@ -404,7 +431,8 @@ export function DictManagementPage() {
                                   type='button'
                                   variant='ghost'
                                   size='sm'
-                                  onClick={() => openEditTypeDialog(item)}
+                                  disabled={openTypeEditor.isPending}
+                                  onClick={() => openTypeEditor.mutate(item)}
                                 >
                                   编辑
                                 </Button>
@@ -465,7 +493,10 @@ export function DictManagementPage() {
               <div className='grid gap-2 md:grid-cols-[280px_140px] md:justify-start'>
                 <Input
                   value={dataKeyword}
-                  onChange={(event) => setDataKeyword(event.target.value)}
+                  onChange={(event) => {
+                    setDataKeyword(event.target.value)
+                    setDataPage(1)
+                  }}
                   placeholder='按字典名称检索'
                   disabled={!selectedType}
                 />
@@ -473,7 +504,10 @@ export function DictManagementPage() {
                   isControlled
                   withFormControl={false}
                   value={dataStatus}
-                  onValueChange={setDataStatus}
+                  onValueChange={(value) => {
+                    setDataStatus(value)
+                    setDataPage(1)
+                  }}
                   items={statusOptions.map((option) => ({ ...option }))}
                   disabled={!selectedType}
                 />
@@ -488,118 +522,24 @@ export function DictManagementPage() {
                   当前账号没有查看字典项列表的权限。
                 </div>
               ) : (
-                <div className='overflow-hidden rounded-md border'>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className='w-28 text-center'>
-                          字典编码
-                        </TableHead>
-                        <TableHead className='w-32 text-center'>
-                          字典名称
-                        </TableHead>
-                        <TableHead className='w-16 text-center'>排序</TableHead>
-                        <TableHead className='w-24 text-center'>
-                          默认项
-                        </TableHead>
-                        <TableHead className='w-24 text-center'>状态</TableHead>
-                        <TableHead className='text-center'>备注</TableHead>
-                        <TableHead className='w-44 text-center'>
-                          创建时间
-                        </TableHead>
-                        <TableHead className='w-28 text-center'>操作</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {dictDataQuery.isPending ? (
-                        <TableRow>
-                          <TableCell
-                            colSpan={8}
-                            className='h-24 text-center text-muted-foreground'
-                          >
-                            字典项加载中...
-                          </TableCell>
-                        </TableRow>
-                      ) : dictData.length === 0 ? (
-                        <TableRow>
-                          <TableCell
-                            colSpan={8}
-                            className='h-24 text-center text-muted-foreground'
-                          >
-                            当前分组下暂无字典项。
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        dictData.map((item) => {
-                          const statusMeta = getStatusBadge(item.status)
-                          const defaultMeta = getDefaultBadge(item.isDefault)
-                          return (
-                            <TableRow key={item.id}>
-                              <TableCell className='text-center font-mono text-xs'>
-                                {item.dictValue}
-                              </TableCell>
-                              <TableCell className='text-center'>
-                                {item.dictLabel}
-                              </TableCell>
-                              <TableCell className='text-center'>
-                                {item.dictSort}
-                              </TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant='outline'
-                                  className={`px-1.5 py-0 text-[10px] ${defaultMeta.className}`}
-                                >
-                                  {defaultMeta.label}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant='outline'
-                                  className={`px-1.5 py-0 text-[10px] ${statusMeta.className}`}
-                                >
-                                  {statusMeta.label}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <span className='line-clamp-2 text-sm text-muted-foreground'>
-                                  {item.remark || '未填写'}
-                                </span>
-                              </TableCell>
-                              <TableCell className='text-sm'>
-                                {formatDateTime(item.createTime)}
-                              </TableCell>
-                              <TableCell className='text-left'>
-                                <div className='flex justify-start gap-1'>
-                                  {canEdit ? (
-                                    <Button
-                                      type='button'
-                                      size='sm'
-                                      variant='ghost'
-                                      onClick={() => openEditDataDialog(item)}
-                                    >
-                                      编辑
-                                    </Button>
-                                  ) : null}
-                                  {canRemove ? (
-                                    <Button
-                                      type='button'
-                                      size='sm'
-                                      variant='ghost'
-                                      className='text-destructive hover:text-destructive'
-                                      onClick={() => setDeleteDataTarget(item)}
-                                    >
-                                      删除
-                                    </Button>
-                                  ) : null}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )
-                        })
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
+                <>
+                  <DictDataTable
+                    records={dictData}
+                    isPending={dictDataQuery.isPending}
+                    isError={dictDataQuery.isError}
+                    onEdit={canEdit ? openDataEditor.mutate : undefined}
+                    isOpeningEditor={openDataEditor.isPending}
+                    onDelete={canRemove ? setDeleteDataTarget : undefined}
+                  />
+                  <DictDataPagination
+                    pageNum={pageNum}
+                    pageSize={pageSize}
+                    pageCount={dataPageCount}
+                    total={dataTotal}
+                    disabled={dictDataQuery.isFetching}
+                    onPageChange={setDataPage}
+                  />
+                </>
               )}
             </CardContent>
           </Card>
@@ -613,7 +553,10 @@ export function DictManagementPage() {
         isSaving={createTypeMutation.isPending || updateTypeMutation.isPending}
         onSubmit={async (values) => {
           if (editingType) {
-            await updateTypeMutation.mutateAsync(values)
+            await updateTypeMutation.mutateAsync({
+              values,
+              original: editingType,
+            })
             return
           }
 
@@ -629,7 +572,10 @@ export function DictManagementPage() {
         isSaving={createDataMutation.isPending || updateDataMutation.isPending}
         onSubmit={async (values) => {
           if (editingData) {
-            await updateDataMutation.mutateAsync(values)
+            await updateDataMutation.mutateAsync({
+              values,
+              original: editingData,
+            })
             return
           }
 

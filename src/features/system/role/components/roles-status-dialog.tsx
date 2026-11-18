@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { handleServerError } from '@/lib/handle-server-error'
+import { queryKeys } from '@/lib/query-keys'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { changeRoleStatus } from '../api'
 import { type Role } from '../model'
@@ -27,7 +28,7 @@ export function RolesStatusDialog({
       toast.success(`已${actionLabel}角色“${currentRow.roleName}”。`)
       onOpenChange(false)
       await queryClient.invalidateQueries({
-        queryKey: ['system', 'role', 'list'],
+        queryKey: queryKeys.roleList(),
       })
     },
     onError: handleServerError,

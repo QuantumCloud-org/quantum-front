@@ -1,3 +1,4 @@
+import { getRecord, toNullableString } from '@/lib/api-normalize'
 import { toId } from '@/lib/ids'
 
 export type OperLog = {
@@ -37,19 +38,6 @@ export type OperLogPage = {
   total: number
   pages: number
   records: OperLog[]
-}
-
-function getRecord(input: unknown): Record<string, unknown> {
-  return (input && typeof input === 'object' ? input : {}) as Record<
-    string,
-    unknown
-  >
-}
-
-function toNullableString(value: unknown): string | null {
-  if (typeof value !== 'string') return null
-  const trimmed = value.trim()
-  return trimmed === '' ? null : trimmed
 }
 
 function normalizeStatus(value: unknown): 0 | 1 {

@@ -1,8 +1,8 @@
 import type { ApiResult } from '@/types/api'
+import { getRecord } from '@/lib/api-normalize'
 import { apiClient } from '@/lib/http'
 import { toId, toIdList } from '@/lib/ids'
 import type {
-  DeptTreeNode,
   PagedResult,
   User,
   UserEditDetail,
@@ -20,17 +20,6 @@ import {
   type UserStatusUpdateInput,
   type UserUpdateFormInput,
 } from './model'
-
-function unwrapResult<T>(result: ApiResult<T>) {
-  return result.data
-}
-
-function getRecord(input: unknown) {
-  return (input && typeof input === 'object' ? input : {}) as Record<
-    string,
-    unknown
-  >
-}
 
 function normalizeNullableText(value: unknown) {
   return typeof value === 'string' ? value : null
@@ -102,47 +91,19 @@ function normalizeRoleOption(input: unknown): UserRoleOption {
   }
 }
 
-function normalizeDeptTreeNode(
-  input: unknown,
-  seen: Set<string>,
-  parentId: string = '0'
-): DeptTreeNode[] {
-  const record = getRecord(input)
-  const deptId = toId(record.id ?? record.deptId)
-  const childrenSource = Array.isArray(record.children) ? record.children : []
-
-  if (!deptId || deptId === '0') {
-    return childrenSource.flatMap((child) =>
-      normalizeDeptTreeNode(child, seen, parentId)
-    )
-  }
-
-  if (seen.has(deptId)) {
-    return []
-  }
-
-  seen.add(deptId)
-
-  return [
-    {
-      id: deptId,
-      label: String(record.label ?? record.deptName ?? ''),
-      children: childrenSource.flatMap((child) =>
-        normalizeDeptTreeNode(child, seen, deptId)
-      ),
-    },
-  ]
-}
-
-export async function fetchUsers(search: Partial<UserManagementSearch>) {
+export async function fetchUsers(
+  search: Partial<UserManagementSearch>,
+  signal?: AbortSignal
+) {
   const response = await apiClient.get<ApiResult<PagedResult<unknown>>>(
     '/system/user/list',
     {
       params: buildUserListQuery(search),
+      signal,
     }
   )
 
-  const page = unwrapResult(response.data)
+  const page = response.data.data
   return {
     pageNum: Number(page.pageNum ?? 1),
     pageSize: Number(page.pageSize ?? 10),
@@ -157,7 +118,7 @@ export async function fetchUserRoleIds(userId: string) {
     `/system/user/${userId}/roles`
   )
 
-  return toIdList(unwrapResult(response.data))
+  return toIdList(response.data.data)
 }
 
 export async function fetchUserDetail(userId: string) {
@@ -165,24 +126,13 @@ export async function fetchUserDetail(userId: string) {
     `/system/user/${userId}`
   )
 
-  return normalizeUserEditDetail(unwrapResult(response.data))
+  return normalizeUserEditDetail(response.data.data)
 }
 
 export async function fetchAllRoles() {
   const response = await apiClient.get<ApiResult<unknown[]>>('/system/role/all')
 
-  return unwrapResult(response.data).map(normalizeRoleOption)
-}
-
-export async function fetchDeptTree() {
-  const response = await apiClient.get<ApiResult<unknown[]>>(
-    '/system/dept/treeselect'
-  )
-
-  const seen = new Set<string>()
-  return unwrapResult(response.data).flatMap((node) =>
-    normalizeDeptTreeNode(node, seen)
-  )
+  return response.data.data.map(normalizeRoleOption)
 }
 
 export async function createUser(input: UserCreateFormInput) {
@@ -191,7 +141,7 @@ export async function createUser(input: UserCreateFormInput) {
     buildUserCreatePayload(input)
   )
 
-  return toId(unwrapResult(response.data))
+  return toId(response.data.data)
 }
 
 export async function updateUser(input: UserUpdateFormInput) {
@@ -200,7 +150,7 @@ export async function updateUser(input: UserUpdateFormInput) {
     buildUserUpdatePayload(input)
   )
 
-  return unwrapResult(response.data)
+  return response.data.data
 }
 
 export async function deleteUsers(userIds: string[]) {
@@ -208,7 +158,7 @@ export async function deleteUsers(userIds: string[]) {
     `/system/user/${userIds.join(',')}`
   )
 
-  return unwrapResult(response.data)
+  return response.data.data
 }
 
 export async function changeUserStatus(input: UserStatusUpdateInput) {
@@ -217,7 +167,7 @@ export async function changeUserStatus(input: UserStatusUpdateInput) {
     buildUserStatusPayload(input)
   )
 
-  return unwrapResult(response.data)
+  return response.data.data
 }
 
 export async function resetUserPassword(input: ResetPasswordFormInput) {
@@ -226,5 +176,5 @@ export async function resetUserPassword(input: ResetPasswordFormInput) {
     buildResetPasswordPayload(input)
   )
 
-  return unwrapResult(response.data)
+  return response.data.data
 }

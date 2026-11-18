@@ -1,6 +1,6 @@
 import { startTransition, useState } from 'react'
 import type { AxiosError } from 'axios'
-import { useQuery } from '@tanstack/react-query'
+import { queryOptions, useQuery } from '@tanstack/react-query'
 import type { ApiResult } from '@/types/api'
 import { Database, RefreshCw, Server, ShieldCheck } from 'lucide-react'
 import {
@@ -12,6 +12,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { queryKeys } from '@/lib/query-keys'
 import { cn } from '@/lib/utils'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -91,10 +92,12 @@ function buildChartData(stats: CacheStat[]) {
 export function CacheMonitorPage() {
   const [activeCacheName, setActiveCacheName] = useState('')
 
-  const cacheListQuery = useQuery({
-    queryKey: ['monitor', 'cache', 'list'],
-    queryFn: fetchCacheStats,
-  })
+  const cacheListQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.cacheList(),
+      queryFn: fetchCacheStats,
+    })
+  )
 
   const stats = cacheListQuery.data ?? []
   const currentCacheName =
@@ -102,11 +105,13 @@ export function CacheMonitorPage() {
       ? activeCacheName
       : (stats[0]?.name ?? '')
 
-  const cacheDetailQuery = useQuery({
-    queryKey: ['monitor', 'cache', 'detail', currentCacheName],
-    queryFn: () => fetchCacheDetail(currentCacheName),
-    enabled: currentCacheName.length > 0,
-  })
+  const cacheDetailQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.cacheDetail(currentCacheName),
+      queryFn: () => fetchCacheDetail(currentCacheName),
+      enabled: currentCacheName.length > 0,
+    })
+  )
 
   const overview = buildCacheOverview(stats)
   const chartData = buildChartData(stats)
@@ -134,9 +139,9 @@ export function CacheMonitorPage() {
             variant='outline'
             size='sm'
             onClick={() => {
-              cacheListQuery.refetch()
+              void cacheListQuery.refetch()
               if (activeCacheName) {
-                cacheDetailQuery.refetch()
+                void cacheDetailQuery.refetch()
               }
             }}
             disabled={cacheListQuery.isFetching || cacheDetailQuery.isFetching}

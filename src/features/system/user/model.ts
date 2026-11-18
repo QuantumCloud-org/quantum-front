@@ -1,7 +1,7 @@
 import { toId, toIdList } from '@/lib/ids'
 
-export type UserStatusFilter = 'active' | 'inactive'
-export type UserSexFilter = '0' | '1' | '2'
+type UserStatusFilter = 'active' | 'inactive'
+type UserSexFilter = '0' | '1' | '2'
 
 export type UserManagementSearch = {
   page: number

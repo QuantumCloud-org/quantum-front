@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableColumnHeader } from '@/components/data-table'
+import { type ServerTableFeatures } from '@/components/data-table/server-table-features'
 import { LongText } from '@/components/long-text'
 import { getRoleStatusLabel, roleStatusTone } from '../data'
 import {
@@ -34,7 +35,7 @@ function formatDateTimeCell(value: string | null) {
   })
 }
 
-const rolesColumns: ColumnDef<Role>[] = [
+const rolesColumns: ColumnDef<ServerTableFeatures, Role>[] = [
   {
     id: 'select',
     header: ({ table }) => (
@@ -47,7 +48,7 @@ const rolesColumns: ColumnDef<Role>[] = [
         aria-label='全选'
         disabled={
           !table
-            .getPaginationRowModel()
+            .getPaginatedRowModel()
             .flatRows.some((row) => row.getCanSelect())
         }
         className='translate-y-[2px]'

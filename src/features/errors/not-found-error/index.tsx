@@ -18,7 +18,13 @@ export function NotFoundError() {
           <Button variant='outline' onClick={() => history.go(-1)}>
             返回上一页
           </Button>
-          <Button onClick={() => navigate({ to: '/' })}>返回首页</Button>
+          <Button
+            onClick={() => {
+              void navigate({ to: '/' })
+            }}
+          >
+            返回首页
+          </Button>
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import type { ApiResult } from '@/types/api'
+import { getRecord } from '@/lib/api-normalize'
 import { apiClient } from '@/lib/http'
 import { toId, toIdList } from '@/lib/ids'
 import type { CheckableTreeNode } from './components/roles-checkable-tree'
@@ -11,22 +12,10 @@ import {
   type RoleCreateFormInput,
   type RoleDataScope,
   type RoleDataScopeUpdateInput,
-  type RoleDetail,
   type RoleManagementSearch,
   type RoleStatusUpdateInput,
   type RoleUpdateFormInput,
 } from './model'
-
-function unwrapResult<T>(result: ApiResult<T>) {
-  return result.data
-}
-
-function getRecord(input: unknown) {
-  return (input && typeof input === 'object' ? input : {}) as Record<
-    string,
-    unknown
-  >
-}
 
 function normalizeStatus(value: unknown): 0 | 1 {
   return Number(value ?? 1) === 0 ? 0 : 1
@@ -44,6 +33,7 @@ function normalizeRole(input: unknown): Role {
   const record = getRecord(input)
   return {
     id: toId(record.id),
+    version: toId(record.version),
     roleName: String(record.roleName ?? ''),
     roleKey: String(record.roleKey ?? ''),
     orderNum: Number(record.orderNum ?? 0),
@@ -55,15 +45,19 @@ function normalizeRole(input: unknown): Role {
   }
 }
 
-export async function fetchRoles(search: Partial<RoleManagementSearch>) {
+export async function fetchRoles(
+  search: Partial<RoleManagementSearch>,
+  signal?: AbortSignal
+) {
   const response = await apiClient.get<ApiResult<PagedResult<unknown>>>(
     '/system/role/list',
     {
       params: buildRoleListQuery(search),
+      signal,
     }
   )
 
-  const page = unwrapResult(response.data)
+  const page = response.data.data
   return {
     pageNum: Number(page.pageNum ?? 1),
     pageSize: Number(page.pageSize ?? 10),
@@ -74,24 +68,22 @@ export async function fetchRoles(search: Partial<RoleManagementSearch>) {
 }
 
 export async function fetchRoleDetail(roleId: string) {
-  const response = await apiClient.get<ApiResult<unknown>>(
-    `/system/role/${roleId}`
-  )
-  return normalizeRole(unwrapResult(response.data)) as RoleDetail
+  const response = await apiClient.get<ApiResult<unknown>>(`/system/role/${roleId}`)
+  return normalizeRole(response.data.data)
 }
 
 export async function fetchRoleMenuIds(roleId: string) {
   const response = await apiClient.get<ApiResult<Array<number | string>>>(
     `/system/role/${roleId}/menus`
   )
-  return toIdList(unwrapResult(response.data))
+  return toIdList(response.data.data)
 }
 
 export async function fetchRoleDeptIds(roleId: string) {
   const response = await apiClient.get<ApiResult<Array<number | string>>>(
     `/system/role/${roleId}/depts`
   )
-  return toIdList(unwrapResult(response.data))
+  return toIdList(response.data.data)
 }
 
 export async function createRole(input: RoleCreateFormInput) {
@@ -99,7 +91,7 @@ export async function createRole(input: RoleCreateFormInput) {
     '/system/role',
     buildRoleCreatePayload(input)
   )
-  return toId(unwrapResult(response.data))
+  return toId(response.data.data)
 }
 
 export async function updateRole(input: RoleUpdateFormInput) {
@@ -107,14 +99,14 @@ export async function updateRole(input: RoleUpdateFormInput) {
     '/system/role',
     buildRoleUpdatePayload(input)
   )
-  return unwrapResult(response.data)
+  return response.data.data
 }
 
 export async function deleteRoles(roleIds: string[]) {
   const response = await apiClient.delete<ApiResult<null>>(
     `/system/role/${roleIds.join(',')}`
   )
-  return unwrapResult(response.data)
+  return response.data.data
 }
 
 export async function changeRoleStatus(input: RoleStatusUpdateInput) {
@@ -128,7 +120,7 @@ export async function changeRoleStatus(input: RoleStatusUpdateInput) {
       },
     }
   )
-  return unwrapResult(response.data)
+  return response.data.data
 }
 
 function normalizeTreeNode(
@@ -162,19 +154,7 @@ export async function fetchMenuTreeSelect() {
     '/system/menu/treeselect'
   )
   const seen = new Set<string>()
-  return unwrapResult(response.data).flatMap((node) =>
-    normalizeTreeNode(node, seen)
-  )
-}
-
-export async function fetchDeptTreeSelect() {
-  const response = await apiClient.get<ApiResult<unknown[]>>(
-    '/system/dept/treeselect'
-  )
-  const seen = new Set<string>()
-  return unwrapResult(response.data).flatMap((node) =>
-    normalizeTreeNode(node, seen)
-  )
+  return response.data.data.flatMap((node) => normalizeTreeNode(node, seen))
 }
 
 export async function updateRoleDataScope(input: RoleDataScopeUpdateInput) {
@@ -192,5 +172,5 @@ export async function updateRoleDataScope(input: RoleDataScopeUpdateInput) {
       },
     }
   )
-  return unwrapResult(response.data)
+  return response.data.data
 }

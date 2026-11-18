@@ -4,7 +4,7 @@ import {
   DoubleArrowLeftIcon,
   DoubleArrowRightIcon,
 } from '@radix-ui/react-icons'
-import { type Table } from '@tanstack/react-table'
+import { type RowData, type ReactTable } from '@tanstack/react-table'
 import { cn, getPageNumbers } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,20 +14,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { type ServerTableFeatures } from '@/components/data-table/server-table-features'
 
-type DataTablePaginationProps<TData> = {
-  table: Table<TData>
+type DataTablePaginationProps<TData extends RowData> = {
+  table: ReactTable<ServerTableFeatures, TData>
   className?: string
 }
 
-export function DataTablePagination<TData>({
+export function DataTablePagination<TData extends RowData>({
   table,
   className,
 }: DataTablePaginationProps<TData>) {
-  const currentPage = table.getState().pagination.pageIndex + 1
+  const currentPage = table.state.pagination.pageIndex + 1
   const totalPages = table.getPageCount()
   const totalRows = table.getRowCount()
-  const currentPageSize = table.getState().pagination.pageSize
+  const currentPageSize = table.state.pagination.pageSize
   const pageNumbers = getPageNumbers(currentPage, totalPages)
 
   return (

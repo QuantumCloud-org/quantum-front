@@ -1,3 +1,5 @@
+import { getRecord, toNumber, toStringValue } from '@/lib/api-normalize'
+
 export type ServerInfo = {
   cpu: {
     cpuNum: number
@@ -50,22 +52,6 @@ export type ServerOverview = {
   diskCount: number
   runtime: string
   osName: string
-}
-
-function getRecord(input: unknown): Record<string, unknown> {
-  return (input && typeof input === 'object' ? input : {}) as Record<
-    string,
-    unknown
-  >
-}
-
-function toNumber(value: unknown) {
-  const num = Number(value)
-  return Number.isFinite(num) ? num : 0
-}
-
-function toStringValue(value: unknown) {
-  return typeof value === 'string' ? value : ''
 }
 
 function getUsageValue(value: unknown) {

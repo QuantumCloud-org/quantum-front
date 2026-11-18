@@ -1,11 +1,15 @@
-'use client'
-
-import { useEffect } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { handleServerError } from '@/lib/handle-server-error'
+import { queryKeys } from '@/lib/query-keys'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -27,10 +31,10 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { PasswordInput } from '@/components/password-input'
 import { SelectDropdown } from '@/components/select-dropdown'
+import { deptTreeSelectQueryOptions } from '@/features/system/dept/api'
 import {
   createUser,
   fetchAllRoles,
-  fetchDeptTree,
   fetchUserDetail,
   fetchUserRoleIds,
   updateUser,
@@ -43,6 +47,7 @@ import {
   userActionFormSchema,
   type UserActionForm,
 } from './users-action-dialog-form'
+import { UserUsernameField } from './user-username-field'
 import { UsersRoleMultiSelect } from './users-role-multi-select'
 
 type UserActionDialogProps = {
@@ -107,31 +112,38 @@ export function UsersActionDialog({
     name: 'deptId',
   })
 
-  const detailQuery = useQuery({
-    queryKey: ['system', 'users', 'detail', currentRow?.id],
-    queryFn: () => fetchUserDetail(currentRow!.id),
-    enabled: open && isEdit && Boolean(currentRow?.id),
-    staleTime: 0,
-  })
+  const detailQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.userDetail(currentRow?.id),
+      queryFn: () => fetchUserDetail(currentRow!.id),
+      enabled: open && isEdit && Boolean(currentRow?.id),
+      staleTime: 0,
+    })
+  )
 
-  const roleIdsQuery = useQuery({
-    queryKey: ['system', 'users', 'roles', currentRow?.id],
-    queryFn: () => fetchUserRoleIds(currentRow!.id),
-    enabled: open && isEdit && Boolean(currentRow?.id),
-    staleTime: 0,
-  })
+  const roleIdsQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.userRoles(currentRow?.id),
+      queryFn: () => fetchUserRoleIds(currentRow!.id),
+      enabled: open && isEdit && Boolean(currentRow?.id),
+      staleTime: 0,
+    })
+  )
 
-  const rolesQuery = useQuery({
-    queryKey: ['system', 'roles', 'all'],
-    queryFn: fetchAllRoles,
-    enabled: open,
-  })
+  const rolesQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.allRoles(),
+      queryFn: fetchAllRoles,
+      enabled: open,
+    })
+  )
 
-  const deptTreeQuery = useQuery({
-    queryKey: ['system', 'dept', 'treeselect'],
-    queryFn: fetchDeptTree,
-    enabled: open,
-  })
+  const deptTreeQuery = useQuery(
+    queryOptions({
+      ...deptTreeSelectQueryOptions(),
+      enabled: open,
+    })
+  )
 
   const createMutation = useMutation({
     mutationFn: createUser,
@@ -140,7 +152,7 @@ export function UsersActionDialog({
       form.reset(buildUserActionDefaultValues())
       onOpenChange(false)
       await queryClient.invalidateQueries({
-        queryKey: ['system', 'users', 'list'],
+        queryKey: queryKeys.userList(),
       })
     },
     onError: handleServerError,
@@ -153,47 +165,44 @@ export function UsersActionDialog({
       onOpenChange(false)
       await Promise.all([
         queryClient.invalidateQueries({
-          queryKey: ['system', 'users', 'list'],
+          queryKey: queryKeys.userList(),
         }),
         queryClient.invalidateQueries({
-          queryKey: ['system', 'users', 'detail', currentRow?.id],
+          queryKey: queryKeys.userDetail(currentRow?.id),
         }),
         queryClient.invalidateQueries({
-          queryKey: ['system', 'users', 'roles', currentRow?.id],
+          queryKey: queryKeys.userRoles(currentRow?.id),
         }),
       ])
     },
     onError: handleServerError,
   })
 
-  useEffect(() => {
-    if (!open) {
-      form.reset(buildUserActionDefaultValues(currentRow))
-      return
-    }
+  const [initialValues, setInitialValues] = useState<UserActionForm | null>(
+    null
+  )
+  const canInitialize =
+    !isEdit ||
+    (detailQuery.isSuccess &&
+      detailQuery.fetchStatus === 'idle' &&
+      roleIdsQuery.isSuccess &&
+      roleIdsQuery.fetchStatus === 'idle')
 
-    if (isEdit && (detailQuery.isFetching || roleIdsQuery.isFetching)) {
-      return
-    }
-
-    form.reset(
+  if (!open && initialValues) setInitialValues(null)
+  if (open && !initialValues && canInitialize) {
+    // Wait for this opening's refetch before freezing the draft and version.
+    setInitialValues(
       buildUserActionDefaultValues(
         currentRow,
         detailQuery.data,
         roleIdsQuery.data ?? []
       )
     )
-  }, [
-    open,
-    isEdit,
-    currentRow,
-    detailQuery.data,
-    detailQuery.isFetching,
-    deptTreeQuery.data,
-    roleIdsQuery.data,
-    roleIdsQuery.isFetching,
-    form,
-  ])
+  }
+
+  useLayoutEffect(() => {
+    if (initialValues) form.reset(initialValues)
+  }, [form, initialValues])
 
   const roleOptions =
     rolesQuery.data?.map((role) => ({
@@ -206,15 +215,13 @@ export function UsersActionDialog({
     detailQuery.data,
     selectedDeptId
   )
-  const hasDependencyError = rolesQuery.isError || deptTreeQuery.isError
-  const isDependencyLoading = rolesQuery.isFetching || deptTreeQuery.isFetching
-  const isEditDataReady =
-    !isEdit || (Boolean(detailQuery.data) && roleIdsQuery.data !== undefined)
-  const isEditDataLoading =
-    isEdit &&
-    (!isEditDataReady || detailQuery.isFetching || roleIdsQuery.isFetching)
+  const hasDependencyError =
+    (!rolesQuery.data && rolesQuery.isError) ||
+    (!deptTreeQuery.data && deptTreeQuery.isError)
+  const isDependencyLoading = rolesQuery.isPending || deptTreeQuery.isPending
+  const isEditDataLoading = isEdit && !initialValues
   const hasEditDataError =
-    isEdit && (detailQuery.isError || roleIdsQuery.isError)
+    isEditDataLoading && (detailQuery.isError || roleIdsQuery.isError)
   const hasFormDataError = hasEditDataError || hasDependencyError
   const formErrorMessage = hasEditDataError
     ? '用户详情或角色分配加载失败，请关闭弹窗后重试。'
@@ -244,7 +251,7 @@ export function UsersActionDialog({
             <div className='rounded-md border border-destructive/30 bg-destructive/5 px-4 py-6 text-sm text-destructive'>
               {formErrorMessage}
             </div>
-          ) : isEdit && !isEditDataReady ? (
+          ) : isEditDataLoading ? (
             <div className='rounded-md border border-dashed px-4 py-10 text-center text-sm text-muted-foreground'>
               用户详情加载中...
             </div>
@@ -252,62 +259,47 @@ export function UsersActionDialog({
             <Form {...form}>
               <form
                 id='user-form'
-                onSubmit={form.handleSubmit(
-                  (values) => {
-                    if (isEdit) {
-                      if (values.id === null || values.version === null) {
-                        toast.error('用户版本信息缺失，请关闭弹窗后重试。')
+                onSubmit={(event) => {
+                  void form.handleSubmit(
+                    (values) => {
+                      if (isEdit) {
+                        if (values.id === null || values.version === null) {
+                          toast.error('用户版本信息缺失，请关闭弹窗后重试。')
+                          return
+                        }
+
+                        updateMutation.mutate({
+                          ...values,
+                          id: values.id,
+                          version: values.version,
+                        })
                         return
                       }
 
-                      updateMutation.mutate({
-                        ...values,
-                        id: values.id,
-                        version: values.version,
+                      createMutation.mutate(values)
+                    },
+                    () => {
+                      if (typeof document === 'undefined') {
+                        return
+                      }
+
+                      const firstInvalidField =
+                        document.querySelector<HTMLElement>(
+                          '#user-form [aria-invalid="true"]'
+                        )
+
+                      firstInvalidField?.scrollIntoView({
+                        block: 'center',
+                        behavior: 'smooth',
                       })
-                      return
+                      firstInvalidField?.focus()
                     }
-
-                    createMutation.mutate(values)
-                  },
-                  () => {
-                    if (typeof document === 'undefined') {
-                      return
-                    }
-
-                    const firstInvalidField =
-                      document.querySelector<HTMLElement>(
-                        '#user-form [aria-invalid="true"]'
-                      )
-
-                    firstInvalidField?.scrollIntoView({
-                      block: 'center',
-                      behavior: 'smooth',
-                    })
-                    firstInvalidField?.focus()
-                  }
-                )}
+                  )(event)
+                }}
                 className='space-y-4 px-0.5'
               >
                 <div className='grid gap-4 md:grid-cols-2'>
-                  <FormField
-                    control={form.control}
-                    name='username'
-                    render={({ field }) => (
-                      <FormItem>
-                        <RequiredFormLabel>用户名</RequiredFormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder='请输入用户名'
-                            autoComplete='off'
-                            disabled={isEdit}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <UserUsernameField control={form.control} disabled={isSaving} />
                   <FormField
                     control={form.control}
                     name='nickname'
@@ -422,10 +414,7 @@ export function UsersActionDialog({
                           value={field.value}
                           onChange={field.onChange}
                           options={roleOptions}
-                          isPending={
-                            rolesQuery.isPending ||
-                            (isEdit && roleIdsQuery.isFetching)
-                          }
+                          isPending={rolesQuery.isPending || isEditDataLoading}
                         />
                       </FormControl>
                       <FormMessage />

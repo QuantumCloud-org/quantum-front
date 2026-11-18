@@ -3,8 +3,8 @@ import { z } from 'zod'
 import { AxiosError } from 'axios'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { fetchCurrentUser, updateProfile } from '@/app/auth/api'
+import { queryOptions, useQuery, useQueryClient } from '@tanstack/react-query'
+import { currentUserQueryOptions, updateProfile } from '@/app/auth/api'
 import type { ApiResult } from '@/types/api'
 import {
   Building2,
@@ -157,15 +157,17 @@ function ProfileInfoItem({
 
 export function ProfileAccountForm() {
   const authUser = useAuthStore((state) => state.user)
-  const setUser = useAuthStore((state) => state.setUser)
+  const generation = useAuthStore((state) => state.sessionGeneration)
+  const profileOptions = currentUserQueryOptions(generation)
   const queryClient = useQueryClient()
   const [isEditing, setIsEditing] = useState(false)
 
-  const profileQuery = useQuery({
-    queryKey: ['auth', 'current-user'],
-    queryFn: fetchCurrentUser,
-    initialData: authUser ?? undefined,
-  })
+  const profileQuery = useQuery(
+    queryOptions({
+      ...profileOptions,
+      initialData: authUser ?? undefined,
+    })
+  )
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -183,12 +185,18 @@ export function ProfileAccountForm() {
       return
     }
 
-    setUser(profileQuery.data)
+    const current = useAuthStore.getState()
+    if (
+      current.sessionGeneration !== generation ||
+      current.user?.id !== profileQuery.data.id
+    )
+      return
+    current.setUser(profileQuery.data)
 
     if (!isEditing) {
       form.reset(buildProfileFormValues(profileQuery.data))
     }
-  }, [profileQuery.data, setUser, form, isEditing])
+  }, [profileQuery.data, generation, form, isEditing])
 
   const user = profileQuery.data
 
@@ -241,8 +249,8 @@ export function ProfileAccountForm() {
 
   const refreshCurrentUser = () =>
     queryClient.fetchQuery({
-      queryKey: ['auth', 'current-user'],
-      queryFn: fetchCurrentUser,
+      ...profileOptions,
+      staleTime: 0,
     })
 
   const handleSave = async (values: ProfileFormValues) => {
@@ -360,7 +368,9 @@ export function ProfileAccountForm() {
             <Form {...form}>
               <form
                 id='profile-form'
-                onSubmit={form.handleSubmit(handleSave)}
+                onSubmit={(event) => {
+                  void form.handleSubmit(handleSave)(event)
+                }}
                 className='grid gap-x-6 gap-y-5 md:grid-cols-2'
               >
                 <FormField
@@ -373,7 +383,10 @@ export function ProfileAccountForm() {
                         邮箱
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder='请输入邮箱' {...field} />
+                        <Input
+                          placeholder={user.email || '请输入新邮箱'}
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -390,7 +403,10 @@ export function ProfileAccountForm() {
                         手机号
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder='请输入手机号' {...field} />
+                        <Input
+                          placeholder={user.phone || '请输入新手机号'}
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

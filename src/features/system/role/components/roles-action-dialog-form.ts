@@ -9,6 +9,7 @@ function isAllowedValue(value: string, allowedValues: string[]) {
 
 export const roleActionFormSchema = z.object({
   id: z.string().nullable(),
+  version: z.string().nullable(),
   roleName: z
     .string()
     .trim()
@@ -31,10 +32,10 @@ export const roleActionFormSchema = z.object({
   dataScope: z
     .string()
     .refine((value) => isAllowedValue(value, ['1', '2', '3', '4', '5']), {
-      message: '请选择数据权限范围。',
+      error: '请选择数据权限范围。',
     }),
   status: z.string().refine((value) => isAllowedValue(value, ['0', '1']), {
-    message: '请选择角色状态。',
+    error: '请选择角色状态。',
   }),
   remark: z.string().trim().max(500, '备注长度不能超过 500 个字符。'),
   menuIds: z.array(z.string()),
@@ -50,6 +51,7 @@ export function buildRoleActionDefaultValues(
 ): RoleActionForm {
   return {
     id: currentRow?.id ?? null,
+    version: currentRow?.version ?? null,
     roleName: currentRow?.roleName ?? '',
     roleKey: currentRow?.roleKey ?? '',
     orderNum: String(currentRow?.orderNum ?? 0),

@@ -1,8 +1,6 @@
-'use client'
-
 import { type ReactNode } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
 import { Box, ChevronRight, Folder } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {

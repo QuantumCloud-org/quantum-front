@@ -1,10 +1,16 @@
 import { useDeferredValue, useState } from 'react'
 import type { AxiosError } from 'axios'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { useAccess } from '@/app/auth/access'
 import type { ApiResult } from '@/types/api'
 import { Building2, Monitor, RefreshCw, Trash2, Users } from 'lucide-react'
 import { toast } from 'sonner'
+import { queryKeys } from '@/lib/query-keys'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -93,29 +99,42 @@ export function OnlineUserPage() {
     new Set()
   )
   const [logoutTarget, setLogoutTarget] = useState<OnlineUser | null>(null)
-  const [bulkLogoutOpen, setBulkLogoutOpen] = useState(false)
+  const [bulkTargets, setBulkTargets] = useState<OnlineUser[] | null>(null)
 
-  const usersQuery = useQuery({
-    queryKey: ['monitor', 'online', 'list'],
-    queryFn: fetchOnlineUsers,
-  })
+  const usersQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.onlineList(),
+      queryFn: fetchOnlineUsers,
+    })
+  )
 
   const logoutMutation = useMutation({
     mutationFn: async (tokenIds: string[]) => {
-      await Promise.all(
-        tokenIds.map((tokenId) => forceLogoutByTokenId(tokenId))
+      const results = await Promise.allSettled(
+        tokenIds.map(forceLogoutByTokenId)
       )
+      const failedIds = new Set(
+        tokenIds.filter((_, index) => results[index].status === 'rejected')
+      )
+      return failedIds
     },
-    onSuccess: async (_, tokenIds) => {
-      toast.success(
-        tokenIds.length > 1
-          ? `已强制下线 ${tokenIds.length} 个会话`
-          : '已强制下线该用户会话'
+    onSuccess: async (failedIds, tokenIds) => {
+      const successCount = tokenIds.length - failedIds.size
+      if (successCount > 0) toast.success(`已强制下线 ${successCount} 个会话`)
+      if (failedIds.size > 0)
+        toast.error(`${failedIds.size} 个会话下线失败，可以重试`)
+
+      setSelectedTokenIds(failedIds)
+      setLogoutTarget((target) =>
+        target && failedIds.has(target.tokenId) ? target : null
       )
-      setSelectedTokenIds(new Set())
-      setLogoutTarget(null)
-      setBulkLogoutOpen(false)
-      await queryClient.invalidateQueries({ queryKey: ['monitor', 'online'] })
+      setBulkTargets((targets) => {
+        const remaining = targets?.filter((target) =>
+          failedIds.has(target.tokenId)
+        )
+        return remaining?.length ? remaining : null
+      })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.online() })
     },
     onError: (error) => {
       toast.error(getErrorMessage(error, '强制下线失败'))
@@ -126,10 +145,12 @@ export function OnlineUserPage() {
   const filteredUsers = filterOnlineUsers(users, deferredFilters)
   const overview = buildOnlineOverview(filteredUsers)
   const hasFilters = hasOnlineUserFilters(filters)
+  const selectedUsers = filteredUsers.filter((user) =>
+    selectedTokenIds.has(user.tokenId)
+  )
   const allSelected =
-    filteredUsers.length > 0 && selectedTokenIds.size === filteredUsers.length
-  const someSelected =
-    selectedTokenIds.size > 0 && selectedTokenIds.size < filteredUsers.length
+    selectedUsers.length > 0 && selectedUsers.length === filteredUsers.length
+  const someSelected = selectedUsers.length > 0 && !allSelected
 
   function updateFilter<K extends keyof OnlineUserFilters>(
     key: K,
@@ -186,7 +207,9 @@ export function OnlineUserPage() {
               type='button'
               variant='outline'
               size='sm'
-              onClick={() => usersQuery.refetch()}
+              onClick={() => {
+                void usersQuery.refetch()
+              }}
               disabled={usersQuery.isFetching}
             >
               <RefreshCw
@@ -439,7 +462,7 @@ export function OnlineUserPage() {
 
       {canForceLogout ? (
         <SelectionBulkActions
-          selectedCount={selectedTokenIds.size}
+          selectedCount={selectedUsers.length}
           entityName='在线会话'
           onClearSelection={() => setSelectedTokenIds(new Set())}
         >
@@ -447,7 +470,7 @@ export function OnlineUserPage() {
             type='button'
             size='sm'
             variant='destructive'
-            onClick={() => setBulkLogoutOpen(true)}
+            onClick={() => setBulkTargets(selectedUsers)}
           >
             <Trash2 className='size-4' />
             批量强退
@@ -487,15 +510,19 @@ export function OnlineUserPage() {
       />
 
       <ConfirmDialog
-        open={bulkLogoutOpen}
-        onOpenChange={setBulkLogoutOpen}
+        open={bulkTargets !== null}
+        onOpenChange={(open) => {
+          if (!open) setBulkTargets(null)
+        }}
         title='确认批量强制下线'
-        desc={`将强制终止 ${selectedTokenIds.size} 个已选会话，执行后这些用户需要重新登录。`}
+        desc={`将强制终止 ${bulkTargets?.length ?? 0} 个会话：${bulkTargets?.map((user) => user.username).join('、') ?? ''}。`}
         destructive
         confirmText='确认批量强退'
         isLoading={logoutMutation.isPending}
         handleConfirm={() => {
-          logoutMutation.mutate([...selectedTokenIds])
+          if (bulkTargets && !logoutMutation.isPending) {
+            logoutMutation.mutate(bulkTargets.map((target) => target.tokenId))
+          }
         }}
       />
     </>

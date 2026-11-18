@@ -3,7 +3,7 @@ export type BusinessTypeMeta = {
   variant: 'default' | 'secondary' | 'destructive' | 'outline'
 }
 
-export const BUSINESS_TYPE_MAP: Record<number, BusinessTypeMeta> = {
+const BUSINESS_TYPE_MAP: Record<number, BusinessTypeMeta> = {
   0: { label: '其它', variant: 'outline' },
   1: { label: '新增', variant: 'default' },
   2: { label: '修改', variant: 'secondary' },

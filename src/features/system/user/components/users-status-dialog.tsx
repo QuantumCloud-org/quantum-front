@@ -1,6 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
+import { queryKeys } from '@/lib/query-keys'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { changeUserStatus, fetchUserDetail } from '../api'
 import { type User } from '../data/schema'
@@ -20,12 +26,14 @@ export function UsersStatusDialog({
   const nextStatus = currentRow.status === 1 ? 0 : 1
   const actionLabel = nextStatus === 1 ? '启用' : '停用'
 
-  const detailQuery = useQuery({
-    queryKey: ['system', 'users', 'detail', currentRow.id],
-    queryFn: () => fetchUserDetail(currentRow.id),
-    enabled: open,
-    staleTime: 0,
-  })
+  const detailQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.userDetail(currentRow.id),
+      queryFn: () => fetchUserDetail(currentRow.id),
+      enabled: open,
+      staleTime: 0,
+    })
+  )
 
   const mutation = useMutation({
     mutationFn: changeUserStatus,
@@ -34,10 +42,10 @@ export function UsersStatusDialog({
       onOpenChange(false)
       await Promise.all([
         queryClient.invalidateQueries({
-          queryKey: ['system', 'users', 'list'],
+          queryKey: queryKeys.userList(),
         }),
         queryClient.invalidateQueries({
-          queryKey: ['system', 'users', 'detail', currentRow.id],
+          queryKey: queryKeys.userDetail(currentRow.id),
         }),
       ])
     },

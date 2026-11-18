@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { type Table } from '@tanstack/react-table'
+import { type RowData, type Table } from '@tanstack/react-table'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -10,9 +10,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { type ServerTableFeatures } from '@/components/data-table/server-table-features'
 
-type DataTableBulkActionsProps<TData> = {
-  table: Table<TData>
+type DataTableBulkActionsProps<TData extends RowData> = {
+  table: Table<ServerTableFeatures, TData>
   entityName: string
   children: React.ReactNode
 }
@@ -29,7 +30,7 @@ type SelectionBulkActionsProps = {
  *
  * @template TData The type of data in the table.
  * @param {object} props The component props.
- * @param {Table<TData>} props.table The react-table instance.
+ * @param {Table<ServerTableFeatures, TData>} props.table The react-table instance.
  * @param {string} props.entityName The name of the entity being acted upon (e.g., "task", "user").
  * @param {React.ReactNode} props.children The action buttons to be rendered inside the toolbar.
  * @returns {React.ReactNode | null} The rendered component or null if no rows are selected.
@@ -210,7 +211,7 @@ function BulkActionsBar({
   )
 }
 
-export function DataTableBulkActions<TData>({
+export function DataTableBulkActions<TData extends RowData>({
   table,
   entityName,
   children,

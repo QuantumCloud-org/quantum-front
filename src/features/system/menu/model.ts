@@ -6,6 +6,7 @@ export type BoolFlag = 0 | 1
 
 export type MenuTreeNode = {
   menuId: string
+  version: string
   parentId: string
   menuName: string
   orderNum: number
@@ -30,6 +31,8 @@ export type MenuListQuery = {
   menuName?: string
   status?: MenuStatus
 }
+
+export type MenuEditTarget = { id: string; version: string }
 
 export type MenuFormInput = {
   parentId: string
@@ -90,9 +93,10 @@ export function buildMenuCreatePayload(input: MenuFormInput) {
   }
 }
 
-export function buildMenuUpdatePayload(input: MenuFormInput, menuId: string) {
+export function buildMenuUpdatePayload(input: MenuFormInput, target: MenuEditTarget) {
   return {
-    menuId: toId(menuId),
+    id: toId(target.id),
+    version: toId(target.version),
     ...buildMenuCreatePayload(input),
   }
 }
@@ -100,8 +104,10 @@ export function buildMenuUpdatePayload(input: MenuFormInput, menuId: string) {
 export function buildMenuFormDefaults(
   detail?: Partial<MenuDetail>,
   parentId?: string
-): MenuFormInput {
+): MenuFormInput & { id: string | null; version: string | null } {
   return {
+    id: detail?.menuId ?? null,
+    version: detail?.version ?? null,
     parentId: parentId ?? detail?.parentId ?? '0',
     menuName: detail?.menuName ?? '',
     orderNum: String(detail?.orderNum ?? 0),
@@ -230,7 +236,7 @@ export function getMenuRootLabel(nodes: MenuTreeNode[]) {
   return findMenuById(nodes, '0')?.menuName ?? '顶级菜单'
 }
 
-export function collectMenuAncestorIds(
+function collectMenuAncestorIds(
   nodes: MenuTreeNode[],
   targetMenuId: string
 ): string[] {

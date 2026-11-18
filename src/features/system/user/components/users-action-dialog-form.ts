@@ -36,11 +36,11 @@ export const userActionFormSchema = z
       .min(1, '请输入邮箱地址。')
       .regex(emailPattern, '邮箱格式不正确。'),
     sex: z.string().refine((value) => isAllowedValue(value, ['0', '1', '2']), {
-      message: '请选择性别。',
+      error: '请选择性别。',
     }),
     deptId: z.string().trim().min(1, '请选择所属部门。'),
     status: z.string().refine((value) => isAllowedValue(value, ['0', '1']), {
-      message: '请选择账号状态。',
+      error: '请选择账号状态。',
     }),
     roleIds: z.array(z.string().trim().min(1)).min(1, '请至少选择一个角色。'),
     remark: z.string().trim().max(500, '备注长度不能超过 500 个字符。'),
@@ -54,7 +54,7 @@ export const userActionFormSchema = z
       return data.password.trim().length > 0
     },
     {
-      message: '请输入密码。',
+      error: '请输入密码。',
       path: ['password'],
     }
   )
@@ -64,7 +64,7 @@ export const userActionFormSchema = z
       return data.password.trim().length >= 8
     },
     {
-      message: '密码长度至少为 8 位。',
+      error: '密码长度至少为 8 位。',
       path: ['password'],
     }
   )
@@ -74,7 +74,7 @@ export const userActionFormSchema = z
       return /[a-z]/.test(data.password)
     },
     {
-      message: '密码至少包含一个小写字母。',
+      error: '密码至少包含一个小写字母。',
       path: ['password'],
     }
   )
@@ -84,7 +84,7 @@ export const userActionFormSchema = z
       return /\d/.test(data.password)
     },
     {
-      message: '密码至少包含一个数字。',
+      error: '密码至少包含一个数字。',
       path: ['password'],
     }
   )
@@ -94,7 +94,7 @@ export const userActionFormSchema = z
       return data.password === data.confirmPassword
     },
     {
-      message: '两次输入的密码不一致。',
+      error: '两次输入的密码不一致。',
       path: ['confirmPassword'],
     }
   )

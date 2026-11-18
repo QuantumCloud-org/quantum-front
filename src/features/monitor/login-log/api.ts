@@ -6,10 +6,6 @@ import {
   type LoginLogQuery,
 } from './model'
 
-function unwrapResult<T>(result: ApiResult<T>) {
-  return result.data
-}
-
 export async function fetchLoginLogPage(
   query: LoginLogQuery
 ): Promise<LoginLogPage> {
@@ -28,7 +24,7 @@ export async function fetchLoginLogPage(
     }
   )
 
-  const page = unwrapResult(response.data)
+  const page = response.data.data
   const records = Array.isArray(page.records) ? page.records : []
   return {
     pageNum: Number(page.pageNum ?? 1),

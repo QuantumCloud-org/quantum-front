@@ -69,12 +69,12 @@ const UserManagementPage = lazy(() =>
   }))
 )
 
-export type BackendPageProps = {
+type BackendPageProps = {
   search: Record<string, unknown>
   navigate: NavigateFn
 }
 
-export type BackendPageDefinition = {
+type BackendPageDefinition = {
   backendComponent: string
   fullPath: string
   render: (props: BackendPageProps) => React.JSX.Element

@@ -8,6 +8,7 @@ import { loginWithPassword } from '@/app/auth/session'
 import type { CaptchaPayload } from '@/types/auth'
 import { Loader2, LogIn } from 'lucide-react'
 import { handleServerError } from '@/lib/handle-server-error'
+import { sanitizeRedirect } from '@/lib/sanitize-redirect'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -119,8 +120,8 @@ export function UserAuthForm({
         return
       }
 
-      navigate({
-        to: redirectTo || '/',
+      await navigate({
+        to: sanitizeRedirect(redirectTo) ?? '/',
         replace: true,
       })
     } catch (error) {
@@ -134,7 +135,9 @@ export function UserAuthForm({
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={(event) => {
+          void form.handleSubmit(onSubmit)(event)
+        }}
         className={cn('grid gap-3', className)}
         {...props}
       >

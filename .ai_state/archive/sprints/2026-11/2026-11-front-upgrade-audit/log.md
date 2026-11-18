@@ -1,0 +1,13 @@
+# log — 2026-11-front-upgrade-audit
+- 2026-11-18 path=System；worktree ../quantum-front-wt-upgrade 分支 chore/front-upgrade-audit-2026-11；扫描者 astra（Codex 只读）+ Opus（只读），写者 Codex gpt-6.2-sol。
+- 2026-11-18 registry 核验→registry-check.md：53 个可升（6 个 major：@hookform/resolvers 7、@tanstack/react-table 9、framer-motion 14、@types/node 26、typescript 7），11 个已是最新；bun 1.4.4 已最新（packageManager 声明为 1.3.14）。
+- 2026-11-18 Opus 扫描 30 条（P0 1、P1 5）、astra 扫描 27 条（P1 5）。用户裁定：prod cookie Path=/talent_manger/auth；模板页保留，只去 console.log。
+- 2026-11-18 第一轮交回：主 agent 复跑 build（evidence 37f70a9b041e）、test 65 个通过（8294d47d1de6）、lint 均为 0；TS 保留 6.0.3（typescript-eslint peer <6.1.0）。已派第二轮做后端接口同步（backend-api-sync.md）。
+- 2026-11-18 前端第二轮交回，主 agent 复跑 build/test(85)/lint 均为 0（evidence 23680e12b3b6）。已派 astra 做整体只读复核。
+- 2026-11-18 astra 整体复核：检查全绿（后端 136 个测试、前端 85 个测试），判定 NEEDS-FIX，20 条（P1 7 条：R01-R07）；源码哈希核对未被改动。已派 sol 跨两端修复。
+- 2026-11-18 review 01600a7d: CONCERNS (4 findings)
+- 2026-11-18 独立 review（Opus，anthropic）：后端 CONCERNS 5 条（P2 OAuth refresh 先消费后校验；P3 共享路径物理删除、登录竞态误计失败、java.* 白名单过宽；evidence 缺口），前端 CONCERNS 4 条（P2 关闭会话后守卫落 GeneralError；P3 409 不重试、lint 证据、prod cookie 待浏览器验证）。已 accept，派 sol 修 B1-B4/F1-F2。
+- 2026-11-18 门禁 G-005 已在 athena 源码修复（Rlues e6a1ea6，本机已安装，doctor no drift；push 被权限拦截，待用户执行）；后端证据 provable（cf73b807513c，171 个测试）。本机 PostgreSQL 已卸载清理。E2E 连在线 PG 实测 cookie 6 个场景全部通过；发现 E2E-1（captcha 竞态，前端修复中）、E2E-2（在线库缺两列，已迁移）。
+- 2026-11-18 review a77d6b57: PASS (2 findings)
+- 2026-11-18 复审：后端 PASS（2 条 P3 → D-001/D-002），前端 PASS（P3 → D-001）。架构档已更新；runtime-verify、cleanup-pass 已写。stage 已推进到 ship。
+- 2026-11-18 shipped (evidence 96e9c6deadf1, review a77d6b57-c657-4a34-9639-ba810f76591e)

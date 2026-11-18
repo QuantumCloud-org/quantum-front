@@ -1,12 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
-  type VisibilityState,
-  type ColumnDef,
+  type ColumnVisibilityState,
+  type RowSelectionState,
   flexRender,
-  getCoreRowModel,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
-  useReactTable,
+  useTable,
 } from '@tanstack/react-table'
 import { useAuthStore } from '@/stores/auth-store'
 import { cn } from '@/lib/utils'
@@ -20,6 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
+import { serverTableFeatures } from '@/components/data-table/server-table-features'
 import { userSexOptions, userStatuses } from '../data/data'
 import { type User } from '../data/schema'
 import { type UserManagementSearchState } from '../search-schema'
@@ -28,6 +26,15 @@ import { getUserManagementAccess } from '../user-management-access'
 import { DataTableBulkActions } from './data-table-bulk-actions'
 import { getUsersColumns } from './users-columns'
 
+const columnFiltersConfig = [
+  { columnId: 'username', searchKey: 'username', type: 'string' },
+  { columnId: 'nickname', searchKey: 'nickname', type: 'string' },
+  { columnId: 'email', searchKey: 'email', type: 'string' },
+  { columnId: 'phone', searchKey: 'phone', type: 'string' },
+  { columnId: 'sex', searchKey: 'sex', type: 'array' },
+  { columnId: 'status', searchKey: 'status', type: 'array' },
+] satisfies NonNullable<Parameters<typeof useTableUrlState>[0]['columnFilters']>
+
 type DataTableProps = {
   data: User[]
   search: UserManagementSearchState
@@ -35,6 +42,7 @@ type DataTableProps = {
   pageCount: number
   total: number
   isLoading: boolean
+  isPageResolved: boolean
 }
 
 export function UsersTable({
@@ -44,17 +52,35 @@ export function UsersTable({
   pageCount,
   total,
   isLoading,
+  isPageResolved,
 }: DataTableProps) {
   const authUser = useAuthStore((state) => state.user)
   const { canBulkDeleteUsers, hasRowActions } =
     getUserManagementAccess(authUser)
-  const columns = getUsersColumns({
-    enableBulkActions: canBulkDeleteUsers,
-    enableRowActions: hasRowActions,
-  }) as ColumnDef<User>[]
+  const columns = useMemo(
+    () =>
+      getUsersColumns({
+        enableBulkActions: canBulkDeleteUsers,
+        enableRowActions: hasRowActions,
+      }),
+    [canBulkDeleteUsers, hasRowActions]
+  )
 
-  const [rowSelection, setRowSelection] = useState({})
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const selectionScope = JSON.stringify(search)
+  const [selection, setSelection] = useState<{
+    data: User[]
+    scope: string
+    rows: RowSelectionState
+  }>({ data, scope: selectionScope, rows: {} })
+  const selectionIsCurrent =
+    selection.data === data && selection.scope === selectionScope
+  if (!selectionIsCurrent)
+    setSelection({ data, scope: selectionScope, rows: {} })
+  const rowSelection =
+    selectionIsCurrent && isPageResolved ? selection.rows : {}
+
+  const [columnVisibility, setColumnVisibility] =
+    useState<ColumnVisibilityState>({})
 
   const {
     columnFilters,
@@ -67,20 +93,14 @@ export function UsersTable({
     navigate,
     pagination: { defaultPage: 1, defaultPageSize: 10 },
     globalFilter: { enabled: false },
-    columnFilters: [
-      { columnId: 'username', searchKey: 'username', type: 'string' },
-      { columnId: 'nickname', searchKey: 'nickname', type: 'string' },
-      { columnId: 'email', searchKey: 'email', type: 'string' },
-      { columnId: 'phone', searchKey: 'phone', type: 'string' },
-      { columnId: 'sex', searchKey: 'sex', type: 'array' },
-      { columnId: 'status', searchKey: 'status', type: 'array' },
-    ],
+    columnFilters: columnFiltersConfig,
   })
 
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const table = useReactTable({
+  const table = useTable({
+    features: serverTableFeatures,
     data,
     columns,
+    getRowId: (row) => row.id,
     state: {
       pagination,
       rowSelection,
@@ -92,19 +112,24 @@ export function UsersTable({
     pageCount: Math.max(pageCount, 1),
     rowCount: total,
     enableRowSelection: (row) =>
-      canBulkDeleteUsers && canSelectSystemUser(row.original),
+      isPageResolved && canBulkDeleteUsers && canSelectSystemUser(row.original),
     onPaginationChange,
     onColumnFiltersChange,
-    onRowSelectionChange: setRowSelection,
+    onRowSelectionChange: (update) => {
+      if (!isPageResolved) return
+      setSelection({
+        data,
+        scope: selectionScope,
+        rows: typeof update === 'function' ? update(rowSelection) : update,
+      })
+    },
     onColumnVisibilityChange: setColumnVisibility,
-    getCoreRowModel: getCoreRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
   })
 
   useEffect(() => {
-    ensurePageInRange(Math.max(pageCount, 1))
-  }, [pageCount, ensurePageInRange])
+    if (isPageResolved)
+      ensurePageInRange(Math.max(pageCount, 1), { resetTo: 'last' })
+  }, [pageCount, ensurePageInRange, isPageResolved])
 
   return (
     <div

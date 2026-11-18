@@ -7,10 +7,6 @@ import {
   type OperLogQuery,
 } from './model'
 
-function unwrapResult<T>(result: ApiResult<T>) {
-  return result.data
-}
-
 export async function fetchOperLogPage(
   query: OperLogQuery
 ): Promise<OperLogPage> {
@@ -30,7 +26,7 @@ export async function fetchOperLogPage(
     }
   )
 
-  const page = unwrapResult(response.data)
+  const page = response.data.data
   const records = Array.isArray(page.records) ? page.records : []
   return {
     pageNum: Number(page.pageNum ?? 1),
@@ -45,7 +41,7 @@ export async function fetchOperLogDetail(operId: string): Promise<OperLog> {
   const response = await apiClient.get<ApiResult<unknown>>(
     `/monitor/operlog/${operId}`
   )
-  return normalizeOperLog(unwrapResult(response.data))
+  return normalizeOperLog(response.data.data)
 }
 
 export async function deleteOperLogs(operIds: string[]): Promise<void> {

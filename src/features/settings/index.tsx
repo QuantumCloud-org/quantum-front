@@ -12,7 +12,7 @@ const settingsPageMeta = {
   },
   password: {
     title: '修改密码',
-    description: '更新登录密码以提升账户安全性。',
+    description: '',
   },
 } as const
 

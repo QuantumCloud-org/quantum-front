@@ -19,7 +19,7 @@ function includesValue(values: string[] | undefined, expected: string) {
   return Boolean(values?.includes(expected))
 }
 
-export function hasRole(
+function hasRole(
   user: Pick<AuthUser, 'roles'> | null | undefined,
   role: string
 ) {
@@ -33,7 +33,7 @@ export function hasRole(
   )
 }
 
-export function hasAnyRole(
+function hasAnyRole(
   user: Pick<AuthUser, 'roles'> | null | undefined,
   roles: string[]
 ) {
@@ -59,7 +59,7 @@ export function hasPermission(
   )
 }
 
-export function hasAnyPermission(
+function hasAnyPermission(
   user: Pick<AuthUser, 'roles' | 'permissions'> | null | undefined,
   permissions: string[]
 ) {

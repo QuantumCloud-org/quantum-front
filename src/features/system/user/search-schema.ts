@@ -1,4 +1,4 @@
-import z from 'zod'
+import { z } from 'zod'
 
 export const userManagementSearchSchema = z.object({
   page: z.number().optional().catch(1),
@@ -6,15 +6,33 @@ export const userManagementSearchSchema = z.object({
   status: z
     .array(z.union([z.literal('active'), z.literal('inactive')]))
     .optional()
-    .catch([]),
+    .catch([])
+    .transform((values) => (values?.length ? [values[0]] : undefined)),
   sex: z
     .array(z.union([z.literal('0'), z.literal('1'), z.literal('2')]))
     .optional()
-    .catch([]),
-  username: z.string().optional().catch(''),
-  nickname: z.string().optional().catch(''),
-  email: z.string().optional().catch(''),
-  phone: z.string().optional().catch(''),
+    .catch([])
+    .transform((values) => (values?.length ? [values[0]] : undefined)),
+  username: z
+    .string()
+    .optional()
+    .catch('')
+    .transform((value) => value?.trim() || undefined),
+  nickname: z
+    .string()
+    .optional()
+    .catch('')
+    .transform((value) => value?.trim() || undefined),
+  email: z
+    .string()
+    .optional()
+    .catch('')
+    .transform((value) => value?.trim() || undefined),
+  phone: z
+    .string()
+    .optional()
+    .catch('')
+    .transform((value) => value?.trim() || undefined),
 })
 
 export type UserManagementSearchState = z.infer<

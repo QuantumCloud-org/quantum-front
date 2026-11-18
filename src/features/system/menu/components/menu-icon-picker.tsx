@@ -1,5 +1,3 @@
-'use client'
-
 import { useMemo, useState } from 'react'
 import { DynamicIcon, type IconName } from 'lucide-react/dynamic'
 import { cn } from '@/lib/utils'

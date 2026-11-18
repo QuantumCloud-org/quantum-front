@@ -1,9 +1,13 @@
-'use client'
-
 import { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { handleServerError } from '@/lib/handle-server-error'
+import { queryKeys } from '@/lib/query-keys'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -16,11 +20,8 @@ import {
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SelectDropdown } from '@/components/select-dropdown'
-import {
-  fetchDeptTreeSelect,
-  fetchRoleDeptIds,
-  updateRoleDataScope,
-} from '../api'
+import { deptTreeSelectQueryOptions } from '@/features/system/dept/api'
+import { fetchRoleDeptIds, updateRoleDataScope } from '../api'
 import { roleDataScopeOptions, type Role, type RoleDataScope } from '../model'
 import { CheckableTree } from './roles-checkable-tree'
 
@@ -45,19 +46,21 @@ export function RolesDataScopeDialog({
   const isCustomScope = dataScope === '4'
   const isOriginallyCustomScope = currentRow.dataScope === 4
 
-  const deptTreeQuery = useQuery({
-    queryKey: ['system', 'dept', 'treeselect'],
-    queryFn: fetchDeptTreeSelect,
-    enabled: open && isCustomScope,
-    staleTime: 60_000,
-  })
+  const deptTreeQuery = useQuery(
+    queryOptions({
+      ...deptTreeSelectQueryOptions(),
+      enabled: open && isCustomScope,
+    })
+  )
 
-  const roleDeptIdsQuery = useQuery({
-    queryKey: ['system', 'role', 'depts', currentRow.id],
-    queryFn: () => fetchRoleDeptIds(currentRow.id),
-    enabled: open && isOriginallyCustomScope,
-    staleTime: 0,
-  })
+  const roleDeptIdsQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.roleDepts(currentRow.id),
+      queryFn: () => fetchRoleDeptIds(currentRow.id),
+      enabled: open && isOriginallyCustomScope,
+      staleTime: 0,
+    })
+  )
 
   const selectedDeptIds =
     deptIdsDirty || !isOriginallyCustomScope
@@ -70,7 +73,7 @@ export function RolesDataScopeDialog({
       toast.success(`角色“${currentRow.roleName}”的数据权限已更新。`)
       onOpenChange(false)
       await queryClient.invalidateQueries({
-        queryKey: ['system', 'role', 'list'],
+        queryKey: queryKeys.roleList(),
       })
     },
     onError: handleServerError,

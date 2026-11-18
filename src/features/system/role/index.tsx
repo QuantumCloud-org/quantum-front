@@ -1,4 +1,5 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { queryOptions, keepPreviousData, useQuery } from '@tanstack/react-query'
+import { queryKeys } from '@/lib/query-keys'
 import { type NavigateFn } from '@/hooks/use-table-url-state'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -21,11 +22,13 @@ export function RoleManagementPage({
   navigate,
 }: RoleManagementPageProps) {
   const parsedSearch = roleManagementSearchSchema.parse(search)
-  const rolesQuery = useQuery({
-    queryKey: ['system', 'role', 'list', parsedSearch],
-    queryFn: () => fetchRoles(parsedSearch),
-    placeholderData: keepPreviousData,
-  })
+  const rolesQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.roleList(parsedSearch),
+      queryFn: ({ signal }) => fetchRoles(parsedSearch, signal),
+      placeholderData: keepPreviousData,
+    })
+  )
 
   const rolePage = rolesQuery.data ?? {
     pageNum: parsedSearch.page,
@@ -55,6 +58,7 @@ export function RoleManagementPage({
           data={rolePage.records}
           total={rolePage.total}
           pageCount={rolePage.pages}
+          isPageResolved={rolesQuery.isSuccess && !rolesQuery.isPlaceholderData}
           isLoading={rolesQuery.isFetching && !rolesQuery.data}
           search={parsedSearch}
           navigate={navigate}

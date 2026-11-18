@@ -1,19 +1,6 @@
 import { type LinkProps } from '@tanstack/react-router'
-import { type IconName } from 'lucide-react/dynamic'
 
-type NavigationIcon = React.ElementType | IconName
-
-type User = {
-  name: string
-  email: string
-  avatar: string
-}
-
-type Team = {
-  name: string
-  logo: React.ElementType
-  plan: string
-}
+type NavigationIcon = React.ComponentType | string
 
 type BaseNavItem = {
   title: string
@@ -38,17 +25,4 @@ type NavGroup = {
   items: NavItem[]
 }
 
-type SidebarData = {
-  user: User
-  teams: Team[]
-  navGroups: NavGroup[]
-}
-
-export type {
-  NavigationIcon,
-  SidebarData,
-  NavGroup,
-  NavItem,
-  NavCollapsible,
-  NavLink,
-}
+export type { NavigationIcon, NavGroup, NavItem, NavCollapsible, NavLink }

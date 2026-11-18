@@ -1,5 +1,15 @@
-import { createContext, useContext, useEffect, useState } from 'react'
-import { CommandMenu } from '@/components/command-menu'
+import {
+  createContext,
+  lazy,
+  Suspense,
+  useContext,
+  useEffect,
+  useState,
+} from 'react'
+
+const CommandMenu = lazy(async () => ({
+  default: (await import('@/components/command-menu')).CommandMenu,
+}))
 
 type SearchContextType = {
   open: boolean
@@ -29,7 +39,11 @@ export function SearchProvider({ children }: SearchProviderProps) {
   return (
     <SearchContext value={{ open, setOpen }}>
       {children}
-      <CommandMenu />
+      {open && (
+        <Suspense fallback={null}>
+          <CommandMenu />
+        </Suspense>
+      )}
     </SearchContext>
   )
 }

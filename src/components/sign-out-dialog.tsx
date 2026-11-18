@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from '@tanstack/react-router'
 import { logoutSession } from '@/app/auth/session'
+import { sanitizeRedirect } from '@/lib/sanitize-redirect'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 
 interface SignOutDialogProps {
@@ -12,11 +13,12 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
   const location = useLocation()
 
   const handleSignOut = () => {
-    const currentPath = location.href
+    const currentPath = sanitizeRedirect(location.href)
     onOpenChange(false)
 
-    void logoutSession().finally(() => {
-      navigate({
+    void logoutSession().then((ended) => {
+      if (!ended) return
+      return navigate({
         to: '/sign-in',
         search: { redirect: currentPath },
         replace: true,

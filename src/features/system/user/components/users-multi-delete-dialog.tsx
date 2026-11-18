@@ -1,44 +1,48 @@
-'use client'
-
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { type Table } from '@tanstack/react-table'
 import { AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
+import { queryKeys } from '@/lib/query-keys'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { type ServerTableFeatures } from '@/components/data-table/server-table-features'
 import { deleteUsers } from '../api'
 import { type User } from '../data/schema'
 
-type UserMultiDeleteDialogProps<TData> = {
-  open: boolean
+type UserMultiDeleteDialogProps = {
+  targets: { id: string; name: string }[] | null
   onOpenChange: (open: boolean) => void
-  table: Table<TData>
+  table: Table<ServerTableFeatures, User>
 }
 
 const CONFIRM_WORD = '删除'
 
-export function UsersMultiDeleteDialog<TData>({
-  open,
+export function UsersMultiDeleteDialog({
+  targets,
   onOpenChange,
   table,
-}: UserMultiDeleteDialogProps<TData>) {
+}: UserMultiDeleteDialogProps) {
   const [value, setValue] = useState('')
   const queryClient = useQueryClient()
-  const selectedRows = table.getFilteredSelectedRowModel().rows
-  const selectedUsers = selectedRows.map((row) => row.original as User)
+  const selectedIds = new Set(
+    table.getSelectedRowModel().rows.map((row) => row.id)
+  )
+  const validTargets = Boolean(
+    targets?.length && targets.every(({ id }) => selectedIds.has(id))
+  )
 
   const mutation = useMutation({
-    mutationFn: () => deleteUsers(selectedUsers.map((user) => user.id)),
-    onSuccess: async () => {
-      toast.success(`已删除 ${selectedUsers.length} 个用户。`)
+    mutationFn: deleteUsers,
+    onSuccess: async (_, ids) => {
+      toast.success(`已删除 ${ids.length} 个用户。`)
       onOpenChange(false)
       setValue('')
       table.resetRowSelection()
       await queryClient.invalidateQueries({
-        queryKey: ['system', 'users', 'list'],
+        queryKey: queryKeys.userList(),
       })
     },
   })
@@ -49,7 +53,8 @@ export function UsersMultiDeleteDialog<TData>({
       return
     }
 
-    mutation.mutate()
+    if (!targets || !validTargets || mutation.isPending) return
+    mutation.mutate(targets.map(({ id }) => id))
   }
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -62,10 +67,12 @@ export function UsersMultiDeleteDialog<TData>({
 
   return (
     <ConfirmDialog
-      open={open}
+      open={targets !== null}
       onOpenChange={handleOpenChange}
       form='users-multi-delete-form'
-      disabled={value.trim() !== CONFIRM_WORD || mutation.isPending}
+      disabled={
+        !validTargets || value.trim() !== CONFIRM_WORD || mutation.isPending
+      }
       isLoading={mutation.isPending}
       title={
         <span className='text-destructive'>
@@ -73,7 +80,7 @@ export function UsersMultiDeleteDialog<TData>({
             className='me-1 inline-block stroke-destructive'
             size={18}
           />{' '}
-          删除 {selectedUsers.length} 个用户
+          删除 {targets?.length ?? 0} 个用户
         </span>
       }
       desc={
@@ -90,6 +97,9 @@ export function UsersMultiDeleteDialog<TData>({
             <br />
             此操作无法撤销。
           </p>
+
+          <p>{targets?.map(({ name, id }) => name || id).join('、')}</p>
+          {!validTargets && <p>列表已更新，请关闭后重新选择。</p>}
 
           <Label className='my-4 flex flex-col items-start gap-1.5'>
             <span>请输入“{CONFIRM_WORD}”确认：</span>

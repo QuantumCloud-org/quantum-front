@@ -5,6 +5,8 @@ type UserPermissionSubject =
   Pick<AuthUser, 'roles' | 'permissions'> | null | undefined
 
 export type UserManagementAccess = {
+  canImportUsers: boolean
+  canExportUsers: boolean
   canCreateUsers: boolean
   canEditUsers: boolean
   canChangeUserStatus: boolean
@@ -35,6 +37,8 @@ export function getUserManagementAccess(
   const canDeleteUsers = hasPermission(user, 'system:user:remove')
 
   return {
+    canImportUsers: hasPermission(user, 'system:user:import'),
+    canExportUsers: hasPermission(user, 'system:user:export'),
     canCreateUsers,
     canEditUsers,
     canChangeUserStatus,

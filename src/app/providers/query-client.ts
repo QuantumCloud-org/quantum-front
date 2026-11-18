@@ -1,8 +1,7 @@
-import { AxiosError } from 'axios'
+import { isAxiosError, isCancel } from 'axios'
 import { QueryCache, QueryClient } from '@tanstack/react-query'
 import type { AppRouter } from '@/app/router'
 import { toast } from 'sonner'
-import { useAuthStore } from '@/stores/auth-store'
 import { handleServerError } from '@/lib/handle-server-error'
 
 type GetRouter = () => AppRouter | null
@@ -12,57 +11,32 @@ export function createAppQueryClient(getRouter: GetRouter) {
     defaultOptions: {
       queries: {
         retry: (failureCount, error) => {
-          // eslint-disable-next-line no-console
-          if (import.meta.env.DEV) console.log({ failureCount, error })
-
-          if (failureCount >= 0 && import.meta.env.DEV) return false
-          if (failureCount > 3 && import.meta.env.PROD) return false
-
-          return !(
-            error instanceof AxiosError &&
-            [401, 403].includes(error.response?.status ?? 0)
-          )
+          if (isCancel(error) || import.meta.env.DEV || failureCount > 3)
+            return false
+          const status = isAxiosError(error)
+            ? error.response?.status
+            : undefined
+          return status !== 401 && status !== 403
         },
         refetchOnWindowFocus: import.meta.env.PROD,
-        staleTime: 10 * 1000,
+        staleTime: 10_000,
       },
       mutations: {
         onError: (error) => {
-          handleServerError(error)
-
-          if (error instanceof AxiosError) {
-            if (error.response?.status === 304) {
-              toast.error('Content not modified!')
-            }
+          if (isAxiosError(error) && error.response?.status === 304) {
+            toast.error('内容未修改。')
+            return
           }
+          handleServerError(error)
         },
       },
     },
     queryCache: new QueryCache({
       onError: (error) => {
-        if (!(error instanceof AxiosError)) {
-          return
-        }
-
+        if (!isAxiosError(error) || error.response?.status !== 500) return
+        toast.error('服务器内部错误。')
         const router = getRouter()
-
-        if (error.response?.status === 401) {
-          toast.error('Session expired!')
-          useAuthStore.getState().reset()
-
-          if (router) {
-            const redirect = `${router.history.location.href}`
-            router.navigate({ to: '/sign-in', search: { redirect } })
-          }
-        }
-
-        if (error.response?.status === 500) {
-          toast.error('Internal Server Error!')
-
-          if (import.meta.env.PROD && router) {
-            router.navigate({ to: '/500' })
-          }
-        }
+        if (import.meta.env.PROD && router) void router.navigate({ to: '/500' })
       },
     }),
   })

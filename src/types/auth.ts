@@ -4,11 +4,16 @@ export interface CaptchaPayload {
   length: number
 }
 
-export interface LoginPayload {
+export interface RefreshPayload {
+  sessionId: string
+  accessToken: string
+  expiresIn: number
+}
+
+export interface LoginPayload extends RefreshPayload {
   userId: string
   username: string
   nickname: string
-  accessToken: string
   expireTime: string
 }
 
@@ -39,6 +44,5 @@ export interface AuthUser {
   createTime?: string
   roles: string[]
   permissions: string[]
+  canClearAuditLogs?: boolean
 }
-
-export type BootstrapStatus = 'idle' | 'loading' | 'ready'

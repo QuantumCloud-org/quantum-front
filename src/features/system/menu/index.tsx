@@ -1,13 +1,17 @@
-'use client'
-
 import { useEffect, useState } from 'react'
 import { AxiosError } from 'axios'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import type { ApiResult } from '@/types/api'
 import { FolderPlus, Save, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { queryKeys } from '@/lib/query-keys'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -51,6 +55,7 @@ import {
   findFirstMenuId,
   findMenuById,
   findNextMenuOrderNum,
+  type MenuEditTarget,
   type MenuFormInput,
   type MenuType,
   type MenuTypeFilter,
@@ -84,6 +89,10 @@ export function MenuManagementPage() {
     defaultValues: buildMenuFormDefaults(),
   })
 
+  const draftId = useWatch({ control: form.control, name: 'id' })
+  const draftVersion = useWatch({ control: form.control, name: 'version' })
+  const { isDirty } = form.formState
+
   const parentIdValue = useWatch({
     control: form.control,
     name: 'parentId',
@@ -94,10 +103,12 @@ export function MenuManagementPage() {
     name: 'menuType',
   })
 
-  const menuTreeQuery = useQuery({
-    queryKey: ['system', 'menu', 'list'],
-    queryFn: () => fetchMenuTree(),
-  })
+  const menuTreeQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.menuList(),
+      queryFn: () => fetchMenuTree(),
+    })
+  )
 
   const menuTree = menuTreeQuery.data ?? []
   const resolvedSelectedMenuId =
@@ -105,11 +116,13 @@ export function MenuManagementPage() {
       ? selectedMenuId
       : findFirstMenuId(menuTree)
 
-  const menuDetailQuery = useQuery({
-    queryKey: ['system', 'menu', 'detail', resolvedSelectedMenuId],
-    queryFn: () => fetchMenuDetail(resolvedSelectedMenuId!),
-    enabled: resolvedSelectedMenuId !== null && !isCreating,
-  })
+  const menuDetailQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.menuDetail(resolvedSelectedMenuId),
+      queryFn: () => fetchMenuDetail(resolvedSelectedMenuId!),
+      enabled: resolvedSelectedMenuId !== null && !isCreating,
+    })
+  )
 
   const selectedMenu =
     resolvedSelectedMenuId === null
@@ -125,37 +138,71 @@ export function MenuManagementPage() {
   }, [form, isCreating, menuTree.length])
 
   useEffect(() => {
-    if (isCreating || !menuDetailQuery.data) {
+    if (
+      isCreating ||
+      !menuDetailQuery.data ||
+      (isDirty && draftId === menuDetailQuery.data.menuId)
+    ) {
       return
     }
 
     form.reset(
       buildMenuFormDefaults(menuDetailQuery.data, selectedMenu?.parentId)
     )
-  }, [form, isCreating, menuDetailQuery.data, selectedMenu?.parentId])
+  }, [
+    menuDetailQuery.data,
+    draftId,
+    form,
+    isCreating,
+    isDirty,
+    selectedMenu?.parentId,
+  ])
 
   const createMutation = useMutation({
+    onError: () => {
+      // The save handler maps server errors to form fields.
+    },
     mutationFn: (values: MenuFormInput) => createMenu(values),
     onSuccess: async (menuId) => {
       setSubmitError(null)
       toast.success('菜单创建成功。')
       setIsCreating(false)
       setSelectedMenuId(menuId || null)
-      await queryClient.invalidateQueries({
-        queryKey: ['system', 'menu'],
-      })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.menu() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.navigation() }),
+      ])
     },
   })
 
   const updateMutation = useMutation({
-    mutationFn: (values: MenuFormInput) =>
-      updateMenu(values, resolvedSelectedMenuId!),
-    onSuccess: async () => {
+    onError: () => {
+      // The save handler maps server errors to form fields.
+    },
+    mutationFn: ({
+      values,
+      target,
+    }: {
+      values: MenuFormInput
+      target: MenuEditTarget
+    }) => updateMenu(values, target),
+    onSuccess: async (_, { target }) => {
       setSubmitError(null)
       toast.success('菜单信息已更新。')
-      await queryClient.invalidateQueries({
-        queryKey: ['system', 'menu'],
-      })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.menu() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.navigation() }),
+      ])
+      const fresh = queryClient.getQueryData<typeof menuDetailQuery.data>(
+        queryKeys.menuDetail(target.id)
+      )
+      if (
+        fresh &&
+        fresh.version !== target.version &&
+        form.getValues('id') === target.id
+      ) {
+        form.reset(buildMenuFormDefaults(fresh))
+      }
     },
   })
 
@@ -172,9 +219,10 @@ export function MenuManagementPage() {
       setSubmitError(null)
       setSelectedMenuId(parentId && parentId !== '0' ? parentId : null)
       toast.success('菜单已删除。')
-      await queryClient.invalidateQueries({
-        queryKey: ['system', 'menu'],
-      })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.menu() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.navigation() }),
+      ])
     },
     onError: (error) => {
       if (error instanceof AxiosError) {
@@ -241,7 +289,7 @@ export function MenuManagementPage() {
       if (generalErrors.some((message) => message.includes('菜单信息已变更'))) {
         toast.error('菜单信息已变更，请刷新后重试。')
         await queryClient.invalidateQueries({
-          queryKey: ['system', 'menu'],
+          queryKey: queryKeys.menu(),
         })
         setSubmitError('菜单信息已变更，请刷新后重试。')
         return
@@ -406,9 +454,14 @@ export function MenuManagementPage() {
         return
       }
 
-      if (resolvedSelectedMenuId !== null) {
-        await updateMutation.mutateAsync(payload)
+      if (values.id !== resolvedSelectedMenuId || !values.id || !values.version) {
+        setSubmitError('菜单信息缺失，请刷新后重试。')
+        return
       }
+      await updateMutation.mutateAsync({
+        values: payload,
+        target: { id: values.id, version: values.version },
+      })
     } catch (error) {
       await handleSaveError(error)
     }
@@ -489,7 +542,9 @@ export function MenuManagementPage() {
                 <Form {...form}>
                   <form
                     id='menu-form'
-                    onSubmit={form.handleSubmit(handleSubmit)}
+                    onSubmit={(event) => {
+                      void form.handleSubmit(handleSubmit)(event)
+                    }}
                     className='flex flex-1 flex-col gap-4'
                   >
                     <div className='grid gap-5 md:grid-cols-2'>
@@ -782,7 +837,9 @@ export function MenuManagementPage() {
                           type='submit'
                           disabled={
                             isSaving ||
-                            (!isCreating && resolvedSelectedMenuId === null)
+                            (!isCreating &&
+                              (draftId !== resolvedSelectedMenuId ||
+                                !draftVersion))
                           }
                         >
                           <Save />

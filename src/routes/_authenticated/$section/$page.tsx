@@ -5,7 +5,9 @@ import { navigationQueryOptions } from '@/app/navigation/api'
 import { getBackendPageByPath } from '@/app/navigation/page-registry'
 import { findBackendRouteByPath } from '@/app/navigation/registry'
 import { dynamicPageSearchSchema } from '@/app/navigation/search-schema'
+import { useAuthStore } from '@/stores/auth-store'
 import { Skeleton } from '@/components/ui/skeleton'
+import { GeneralError } from '@/features/errors/general-error'
 
 export const Route = createFileRoute('/_authenticated/$section/$page')({
   validateSearch: dynamicPageSearchSchema,
@@ -18,7 +20,7 @@ export const Route = createFileRoute('/_authenticated/$section/$page')({
     }
 
     const routers = await context.queryClient.ensureQueryData(
-      navigationQueryOptions()
+      navigationQueryOptions(useAuthStore.getState().sessionGeneration)
     )
 
     const backendRoute = findBackendRouteByPath(routers, pathname)
@@ -42,6 +44,7 @@ export const Route = createFileRoute('/_authenticated/$section/$page')({
     })
   },
   component: RouteComponent,
+  errorComponent: ({ reset }) => <GeneralError minimal reset={reset} />,
 })
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -59,7 +62,9 @@ function RouteComponent() {
   return (
     <Suspense fallback={<BackendPageFallback />}>
       {pageDefinition.render({
-        navigate,
+        navigate: (options) => {
+          void navigate(options)
+        },
         search,
       })}
     </Suspense>

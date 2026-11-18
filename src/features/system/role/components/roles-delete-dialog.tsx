@@ -1,10 +1,9 @@
-'use client'
-
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { handleServerError } from '@/lib/handle-server-error'
+import { queryKeys } from '@/lib/query-keys'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,7 +32,7 @@ export function RolesDeleteDialog({
       onOpenChange(false)
       setValue('')
       await queryClient.invalidateQueries({
-        queryKey: ['system', 'role', 'list'],
+        queryKey: queryKeys.roleList(),
       })
     },
     onError: handleServerError,

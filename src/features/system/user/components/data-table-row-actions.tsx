@@ -12,6 +12,7 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { type ServerTableFeatures } from '@/components/data-table/server-table-features'
 import { type User } from '../data/schema'
 import { getUserManagementAccess } from '../user-management-access'
 import { useUsers } from './users-provider'
@@ -19,7 +20,7 @@ import { UsersResetPasswordDialog } from './users-reset-password-dialog'
 import { UsersStatusDialog } from './users-status-dialog'
 
 type DataTableRowActionsProps = {
-  row: Row<User>
+  row: Row<ServerTableFeatures, User>
 }
 
 function runAfterMenuCloses(callback: () => void) {

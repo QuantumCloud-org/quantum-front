@@ -1,12 +1,13 @@
 import { Cross2Icon } from '@radix-ui/react-icons'
-import { type Table } from '@tanstack/react-table'
+import { type RowData, type ReactTable } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { type ServerTableFeatures } from '@/components/data-table/server-table-features'
+import { DebouncedSearchInput } from './debounced-search-input'
 import { DataTableFacetedFilter } from './faceted-filter'
 import { DataTableViewOptions } from './view-options'
 
-type DataTableToolbarProps<TData> = {
-  table: Table<TData>
+type DataTableToolbarProps<TData extends RowData> = {
+  table: ReactTable<ServerTableFeatures, TData>
   searchPlaceholder?: string
   searchKey?: string
   searches?: {
@@ -25,7 +26,7 @@ type DataTableToolbarProps<TData> = {
   }[]
 }
 
-export function DataTableToolbar<TData>({
+export function DataTableToolbar<TData extends RowData>({
   table,
   searchPlaceholder = '筛选...',
   searchKey,
@@ -33,7 +34,7 @@ export function DataTableToolbar<TData>({
   filters = [],
 }: DataTableToolbarProps<TData>) {
   const isFiltered =
-    table.getState().columnFilters.length > 0 || table.getState().globalFilter
+    table.state.columnFilters.length > 0 || table.state.globalFilter
   const searchFields =
     searches.length > 0
       ? searches
@@ -46,27 +47,25 @@ export function DataTableToolbar<TData>({
       <div className='flex flex-1 flex-wrap items-center gap-2'>
         {searchFields.length > 0 ? (
           searchFields.map((searchField) => (
-            <Input
+            <DebouncedSearchInput
               key={searchField.columnId}
               placeholder={searchField.placeholder ?? searchPlaceholder}
-              value={
+              committed={
                 (table
                   .getColumn(searchField.columnId)
                   ?.getFilterValue() as string) ?? ''
               }
-              onChange={(event) =>
-                table
-                  .getColumn(searchField.columnId)
-                  ?.setFilterValue(event.target.value)
+              onCommit={(value) =>
+                table.getColumn(searchField.columnId)?.setFilterValue(value)
               }
               className={searchField.className ?? 'h-8 w-[150px] lg:w-[200px]'}
             />
           ))
         ) : (
-          <Input
+          <DebouncedSearchInput
             placeholder={searchPlaceholder}
-            value={table.getState().globalFilter ?? ''}
-            onChange={(event) => table.setGlobalFilter(event.target.value)}
+            committed={table.state.globalFilter ?? ''}
+            onCommit={(value) => table.setGlobalFilter(value)}
             className='h-8 w-[150px] lg:w-[250px]'
           />
         )}

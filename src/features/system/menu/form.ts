@@ -8,9 +8,11 @@ function isAllowedFlag(value: string) {
 
 export const menuFormSchema = z
   .object({
+    id: z.string().nullable(),
+    version: z.string().nullable(),
     parentId: z.string().trim().min(1, '请选择上级菜单。'),
     menuType: z.enum(['M', 'C', 'F'], {
-      message: '请选择菜单类型。',
+      error: '请选择菜单类型。',
     }),
     menuName: z
       .string()
@@ -22,59 +24,42 @@ export const menuFormSchema = z
       .trim()
       .min(1, '请输入显示顺序。')
       .refine((value) => /^\d+$/.test(value), {
-        message: '显示顺序必须为非负整数。',
+        error: '显示顺序必须为非负整数。',
       }),
     path: z.string().trim().max(200, '路由地址长度不能超过 200 个字符。'),
     component: z.string().trim().max(200, '组件路径长度不能超过 200 个字符。'),
     queryParam: z.string().trim().max(200, '路由参数长度不能超过 200 个字符。'),
     isFrame: z.string().refine(isAllowedFlag, {
-      message: '请选择是否外链。',
+      error: '请选择是否外链。',
     }),
     isCache: z.string().refine(isAllowedFlag, {
-      message: '请选择是否缓存。',
+      error: '请选择是否缓存。',
     }),
     visible: z.string().refine(isAllowedFlag, {
-      message: '请选择显示状态。',
+      error: '请选择显示状态。',
     }),
     perms: z.string().trim().max(100, '权限标识长度不能超过 100 个字符。'),
     icon: z.string().trim().max(100, '图标标识长度不能超过 100 个字符。'),
     status: z.string().refine(isAllowedFlag, {
-      message: '请选择菜单状态。',
+      error: '请选择菜单状态。',
     }),
     remark: z.string().trim().max(500, '备注长度不能超过 500 个字符。'),
   })
-  .superRefine((value, ctx) => {
-    if ((value.menuType === 'M' || value.menuType === 'C') && !value.path) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['path'],
-        message: '目录/菜单路由地址不能为空。',
-      })
-    }
-
-    if (value.menuType === 'C' && !value.component) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['component'],
-        message: '菜单组件路径不能为空。',
-      })
-    }
-
-    if (value.menuType === 'F' && !value.perms) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['perms'],
-        message: '按钮权限标识不能为空。',
-      })
-    }
-
-    if (value.perms && !permsPattern.test(value.perms)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['perms'],
-        message: '权限标识格式不正确。',
-      })
-    }
+  .refine((value) => value.menuType === 'F' || Boolean(value.path), {
+    path: ['path'],
+    error: '目录/菜单路由地址不能为空。',
+  })
+  .refine((value) => value.menuType !== 'C' || Boolean(value.component), {
+    path: ['component'],
+    error: '菜单组件路径不能为空。',
+  })
+  .refine((value) => value.menuType !== 'F' || Boolean(value.perms), {
+    path: ['perms'],
+    error: '按钮权限标识不能为空。',
+  })
+  .refine((value) => !value.perms || permsPattern.test(value.perms), {
+    path: ['perms'],
+    error: '权限标识格式不正确。',
   })
 
 export type MenuFormValues = z.input<typeof menuFormSchema>

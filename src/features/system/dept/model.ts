@@ -1,9 +1,10 @@
 import { toId } from '@/lib/ids'
 
-export type DeptStatus = 0 | 1
+type DeptStatus = 0 | 1
 
 export type DeptTreeNode = {
   deptId: string
+  version: string
   parentId: string
   deptName: string
   orderNum: number | null
@@ -27,6 +28,8 @@ export type DeptListSearch = {
   status?: DeptFilterStatus
 }
 
+export type DeptEditTarget = { id: string; version: string }
+
 export type DeptFormInput = {
   parentId: string
   deptName: string
@@ -38,11 +41,6 @@ export type DeptFormInput = {
 }
 
 export type DeptFilterStatus = 'all' | 'active' | 'inactive'
-
-export type ParentOption = {
-  label: string
-  value: string
-}
 
 export type DeptTreeViewItem = {
   id: string
@@ -101,31 +99,36 @@ export function buildDeptCreatePayload(input: DeptFormInput) {
   }
 }
 
-export function buildDeptUpdatePayload(input: DeptFormInput, id: string) {
-  const payload = buildDeptCreatePayload(input)
-  const deptId = toId(id)
+export function buildDeptUpdatePayload(input: DeptFormInput, target: DeptEditTarget) {
+  const { phone, email, ...payload } = buildDeptCreatePayload(input)
+  const id = toId(target.id)
 
   return {
-    id: deptId,
+    id,
+    version: toId(target.version),
     ...payload,
-    parentId: payload.parentId === deptId ? '0' : payload.parentId,
+    parentId: payload.parentId === id ? '0' : payload.parentId,
+    phone: phone ?? undefined,
+    email: email ?? undefined,
   }
 }
 
 export function buildDeptFormDefaults(
   detail?: Partial<DeptDetail>,
   parentId?: string
-): DeptFormInput {
+): DeptFormInput & { id: string | null; version: string | null } {
   const resolvedParentId = parentId ?? detail?.parentId ?? '0'
   const deptId = detail?.deptId
 
   return {
+    id: detail?.deptId ?? null,
+    version: detail?.version ?? null,
     parentId: deptId && resolvedParentId === deptId ? '0' : resolvedParentId,
     deptName: detail?.deptName ?? '',
     orderNum: String(detail?.orderNum ?? 0),
     leader: detail?.leader ?? '',
-    phone: detail?.phone ?? '',
-    email: detail?.email ?? '',
+    phone: '',
+    email: '',
     status: String(detail?.status ?? 1) as '0' | '1',
   }
 }
@@ -225,43 +228,11 @@ export function buildDeptTreeViewItems(
   })
 }
 
-export function flattenDeptParentOptions(
-  nodes: DeptTreeNode[],
-  excludedIds: Set<string>
-): ParentOption[] {
-  return nodes.flatMap((node) => {
-    if (excludedIds.has(node.deptId)) {
-      return []
-    }
-
-    return [
-      {
-        label: node.deptName,
-        value: node.deptId,
-      },
-      ...flattenDeptParentOptions(node.children ?? [], excludedIds),
-    ]
-  })
-}
-
-export function buildDeptParentOptions(
-  nodes: DeptTreeNode[],
-  excludedIds: Set<string>
-) {
-  const options = flattenDeptParentOptions(nodes, excludedIds)
-
-  if (options.some((option) => option.value === '0')) {
-    return options
-  }
-
-  return [{ label: '顶级部门', value: '0' }, ...options]
-}
-
 export function getDeptRootLabel(nodes: DeptTreeNode[]) {
   return findDeptById(nodes, '0')?.deptName ?? '顶级部门'
 }
 
-export function collectDeptAncestorIds(
+function collectDeptAncestorIds(
   nodes: DeptTreeNode[],
   targetDeptId: string
 ): string[] {
@@ -305,21 +276,4 @@ export function ensureDeptPathExpanded(
     next.add(deptId)
   )
   return next
-}
-
-export function countDeptDescendants(node?: DeptTreeNode): number {
-  if (!node) {
-    return 0
-  }
-
-  return (node.children ?? []).reduce(
-    (total, child) => total + 1 + countDeptDescendants(child),
-    0
-  )
-}
-
-export function countDeptNodes(nodes: DeptTreeNode[]): number {
-  return nodes.reduce((total, node) => {
-    return total + 1 + countDeptNodes(node.children ?? [])
-  }, 0)
 }

@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "run": "a77d6b57-c657-4a34-9639-ba810f76591e",
+  "scope": "implementation",
+  "base_commit": "f23d2ad",
+  "tree_sha": "4f99143d7880a9513460a37220fc20d55f7ab1b8",
+  "ignore": [],
+  "packet_sha": "f6eea6642bae869c4eeee538465083513c16e9d17f289b958027f5eaaabac0c5",
+  "ac_sha": "783966398fa60a0a5c6260d936dbf504d57c1fbc0d2b6fe2646a88bfdfdd871c",
+  "output_sha": "93d01c1a0966c90d3b9a89daba80c7d8aa5a480cd344ac59f3e74703713c6f1b",
+  "verdict": "PASS",
+  "findings": [
+    {
+      "sev": "P3",
+      "loc": "src/lib/http.ts:30, src/lib/http.ts:223",
+      "text": "`skipSession` is only used in a test (http.test.ts:286). No production code sets it. It is an unused way to skip the session check, so any future business request that sets it would also skip having stale responses discarded. Remove it, or limit it to test builds."
+    },
+    {
+      "sev": "P3",
+      "loc": "packet:R3",
+      "text": "Unchanged from last round. Whether the production cookie path (`/talent_manger/auth`) covers `/auth/refresh` still needs a real browser and backend integration check before release."
+    }
+  ],
+  "reviewer": {
+    "platform": "cc",
+    "agent_id": "opus-reviewer-front",
+    "family": "anthropic"
+  },
+  "accepted_at": "2026-11-18T05:50:24.105Z"
+}

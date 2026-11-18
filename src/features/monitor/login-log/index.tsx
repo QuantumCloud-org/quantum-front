@@ -1,19 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { AxiosError } from 'axios'
 import {
+  queryOptions,
   keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import {
-  getCoreRowModel,
-  type ColumnDef,
-  useReactTable,
-} from '@tanstack/react-table'
+import { type ColumnDef, useTable } from '@tanstack/react-table'
 import { useAccess } from '@/app/auth/access'
+import { useAuthStore } from '@/stores/auth-store'
 import { RefreshCw, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { queryKeys } from '@/lib/query-keys'
 import { type NavigateFn, useTableUrlState } from '@/hooks/use-table-url-state'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,10 +25,15 @@ import {
   DataTablePagination,
   SelectionBulkActions,
 } from '@/components/data-table'
+import {
+  serverTableFeatures,
+  type ServerTableFeatures,
+} from '@/components/data-table/server-table-features'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
+import { getLogCleanError, logCleanAccess } from '../log-clean'
 import { cleanLoginLog, deleteLoginLogs, fetchLoginLogPage } from './api'
 import {
   LoginLogSearchForm,
@@ -44,12 +48,13 @@ type Props = {
   navigate: NavigateFn
 }
 
-const paginationColumns: ColumnDef<LoginLog>[] = []
+const paginationColumns: ColumnDef<ServerTableFeatures, LoginLog>[] = []
 
 export function LoginLogPage({ search, navigate }: Props) {
   const parsed = loginLogSearchSchema.parse(search)
   const queryClient = useQueryClient()
   const canRemoveLogs = useAccess({ permissions: ['monitor:loginlog:remove'] })
+  const canCleanLogs = useAuthStore((state) => logCleanAccess(state.user))
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
@@ -63,7 +68,16 @@ export function LoginLogPage({ search, navigate }: Props) {
     endTime: parsed.endTime ?? '',
   })
 
-  useEffect(() => {
+  const filterSource = JSON.stringify([
+    parsed.beginTime,
+    parsed.endTime,
+    parsed.ipaddr,
+    parsed.status,
+    parsed.username,
+  ])
+  const [previousFilterSource, setPreviousFilterSource] = useState(filterSource)
+  if (previousFilterSource !== filterSource) {
+    setPreviousFilterSource(filterSource)
     setLocalFilters({
       username: parsed.username ?? '',
       ipaddr: parsed.ipaddr ?? '',
@@ -71,13 +85,7 @@ export function LoginLogPage({ search, navigate }: Props) {
       beginTime: parsed.beginTime ?? '',
       endTime: parsed.endTime ?? '',
     })
-  }, [
-    parsed.beginTime,
-    parsed.endTime,
-    parsed.ipaddr,
-    parsed.status,
-    parsed.username,
-  ])
+  }
 
   const { pagination, onPaginationChange, ensurePageInRange } =
     useTableUrlState({
@@ -100,18 +108,20 @@ export function LoginLogPage({ search, navigate }: Props) {
     [parsed]
   )
 
-  const logsQuery = useQuery({
-    queryKey: ['monitor', 'loginlog', 'page', query],
-    queryFn: () => fetchLoginLogPage(query),
-    placeholderData: keepPreviousData,
-  })
+  const logsQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.loginLogPage(query),
+      queryFn: () => fetchLoginLogPage(query),
+      placeholderData: keepPreviousData,
+    })
+  )
 
   const deleteMutation = useMutation({
     mutationFn: (ids: string[]) => deleteLoginLogs(ids),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('删除成功')
       setSelectedIds(new Set())
-      queryClient.invalidateQueries({ queryKey: ['monitor', 'loginlog'] })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.loginLog() })
     },
     onError: (err) => {
       const message =
@@ -122,15 +132,13 @@ export function LoginLogPage({ search, navigate }: Props) {
 
   const cleanMutation = useMutation({
     mutationFn: () => cleanLoginLog(),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('已清空登录日志')
       setSelectedIds(new Set())
-      queryClient.invalidateQueries({ queryKey: ['monitor', 'loginlog'] })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.loginLog() })
     },
     onError: (err) => {
-      const message =
-        (err as AxiosError<{ msg?: string }>)?.response?.data?.msg ?? '清空失败'
-      toast.error(message)
+      toast.error(getLogCleanError(err))
     },
   })
 
@@ -142,8 +150,8 @@ export function LoginLogPage({ search, navigate }: Props) {
     records: [] as LoginLog[],
   }
 
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const paginationTable = useReactTable({
+  const paginationTable = useTable({
+    features: serverTableFeatures,
     data: page.records,
     columns: paginationColumns,
     state: { pagination },
@@ -151,12 +159,18 @@ export function LoginLogPage({ search, navigate }: Props) {
     pageCount: Math.max(page.pages, 1),
     rowCount: page.total,
     onPaginationChange,
-    getCoreRowModel: getCoreRowModel(),
   })
 
   useEffect(() => {
-    ensurePageInRange(Math.max(page.pages, 1))
-  }, [ensurePageInRange, page.pages])
+    if (logsQuery.isSuccess && !logsQuery.isPlaceholderData) {
+      ensurePageInRange(Math.max(page.pages, 1), { resetTo: 'last' })
+    }
+  }, [
+    ensurePageInRange,
+    page.pages,
+    logsQuery.isSuccess,
+    logsQuery.isPlaceholderData,
+  ])
 
   function updateSearch(next: Partial<LoginLogSearchState>) {
     navigate({
@@ -228,7 +242,9 @@ export function LoginLogPage({ search, navigate }: Props) {
             <Button
               variant='outline'
               size='sm'
-              onClick={() => logsQuery.refetch()}
+              onClick={() => {
+                void logsQuery.refetch()
+              }}
               disabled={logsQuery.isFetching}
             >
               <RefreshCw
@@ -238,7 +254,7 @@ export function LoginLogPage({ search, navigate }: Props) {
               />
               刷新
             </Button>
-            {canRemoveLogs ? (
+            {canCleanLogs ? (
               <Button
                 variant='destructive'
                 size='sm'
@@ -313,14 +329,14 @@ export function LoginLogPage({ search, navigate }: Props) {
       />
 
       <ConfirmDialog
-        open={cleanOpen}
+        open={canCleanLogs && cleanOpen}
         onOpenChange={setCleanOpen}
         title='清空登录日志'
         desc={`确定清空全部 ${page.total} 条登录日志吗?此操作不可撤销。`}
         confirmText='清空'
         destructive
         isLoading={cleanMutation.isPending}
-        disabled={!canRemoveLogs}
+        disabled={!canCleanLogs}
         handleConfirm={() => {
           cleanMutation.mutate(undefined, {
             onSuccess: () => setCleanOpen(false),

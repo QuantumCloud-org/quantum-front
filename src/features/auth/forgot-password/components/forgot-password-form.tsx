@@ -35,18 +35,16 @@ export function ForgotPasswordForm({
     defaultValues: { email: '' },
   })
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
+  function onSubmit() {
     setIsLoading(true)
-    // eslint-disable-next-line no-console
-    console.log(data)
 
     toast.promise(sleep(2000), {
       loading: '发送邮件中...',
       success: () => {
         setIsLoading(false)
         form.reset()
-        navigate({ to: '/otp' })
-        return `验证码邮件已发送至 ${data.email}`
+        void navigate({ to: '/otp' })
+        return '验证码邮件已发送'
       },
       error: '发送失败',
     })
@@ -55,7 +53,9 @@ export function ForgotPasswordForm({
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={(event) => {
+          void form.handleSubmit(onSubmit)(event)
+        }}
         className={cn('grid gap-2', className)}
         {...props}
       >

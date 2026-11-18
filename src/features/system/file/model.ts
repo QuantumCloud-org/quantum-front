@@ -1,3 +1,4 @@
+import { getRecord, toNullableString } from '@/lib/api-normalize'
 import { toId } from '@/lib/ids'
 
 export type SysFile = {
@@ -49,16 +50,21 @@ export const BIZ_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: 'icon', label: '图标' },
 ]
 
-export const PREVIEWABLE_EXTENSIONS = new Set([
-  'jpg',
-  'jpeg',
-  'png',
-  'gif',
-  'webp',
-  'bmp',
-  'ico',
-  'pdf',
+const previewMimeTypes = new Map([
+  ['jpg', 'image/jpeg'],
+  ['jpeg', 'image/jpeg'],
+  ['png', 'image/png'],
+  ['gif', 'image/gif'],
+  ['webp', 'image/webp'],
+  ['bmp', 'image/bmp'],
+  ['ico', 'image/x-icon'],
+  ['pdf', 'application/pdf'],
 ])
+
+/** Restricts inline previews to application-selected image and PDF MIME types. */
+export function getPreviewMimeType(extension?: string | null) {
+  return extension ? previewMimeTypes.get(extension.toLowerCase()) : undefined
+}
 
 export const MAX_UPLOAD_SIZE_MB = 100
 
@@ -67,7 +73,7 @@ export const MAX_UPLOAD_SIZE_MB = 100
  * the user; it is a convenience guard, not a security boundary — the server
  * still has to validate every upload it accepts.
  */
-export const BLOCKED_UPLOAD_EXTENSIONS = new Set([
+const BLOCKED_UPLOAD_EXTENSIONS = new Set([
   'exe',
   'bat',
   'sh',
@@ -87,7 +93,7 @@ export const BLOCKED_UPLOAD_EXTENSIONS = new Set([
 ])
 
 /** Trailing extension in lowercase, or '' when the name carries none. */
-export function getFileExtension(name: string) {
+function getFileExtension(name: string) {
   const lastDot = name.lastIndexOf('.')
   if (lastDot === -1 || lastDot === name.length - 1) {
     return ''
@@ -136,23 +142,7 @@ export function formatFileSize(size: number) {
 }
 
 export function canPreview(extension: string | null | undefined) {
-  if (!extension) return false
-  return PREVIEWABLE_EXTENSIONS.has(extension.toLowerCase())
-}
-
-function getRecord(input: unknown): Record<string, unknown> {
-  return (input && typeof input === 'object' ? input : {}) as Record<
-    string,
-    unknown
-  >
-}
-
-function toNullableString(value: unknown): string | null {
-  if (typeof value !== 'string') {
-    return null
-  }
-  const trimmed = value.trim()
-  return trimmed === '' ? null : trimmed
+  return Boolean(getPreviewMimeType(extension))
 }
 
 export function normalizeSysFile(input: unknown): SysFile {

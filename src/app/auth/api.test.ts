@@ -46,6 +46,17 @@ describe('parseAuthUser', () => {
     expect(user.permissions).toEqual([])
   })
 
+  test('uses the server audit-clear capability and denies access when it is missing', () => {
+    expect(parseAuthUser({ ...VALID, canClearAuditLogs: true })).toHaveProperty(
+      'canClearAuditLogs',
+      true
+    )
+    expect(
+      parseAuthUser({ ...VALID, id: '2', canClearAuditLogs: false })
+    ).toHaveProperty('canClearAuditLogs', false)
+    expect(parseAuthUser(VALID)).toHaveProperty('canClearAuditLogs', false)
+  })
+
   test('preserves optional backend fields it does not declare', () => {
     const user = parseAuthUser({ ...VALID, deptName: '研发部', sex: 1 })
 

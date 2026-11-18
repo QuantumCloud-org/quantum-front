@@ -1,42 +1,27 @@
-import type { AuthUser, BootstrapStatus } from '@/types/auth'
+import type { AuthUser } from '@/types/auth'
 import { create } from 'zustand'
 import {
   createJSONStorage,
   persist,
   type StateStorage,
 } from 'zustand/middleware'
+import { stripBearerPrefix } from '@/lib/auth-token'
 
 const AUTH_STORAGE_KEY = 'talent_manager_auth'
 
-type SessionTokens = {
-  accessToken: string
-  deviceId?: string
-}
-
-type TokenUpdate = {
-  accessToken?: string
-}
-
 type PersistedAuthState = {
   deviceId: string
-  user: AuthUser | null
 }
 
 type AuthState = PersistedAuthState & {
   accessToken: string
-  bootstrapStatus: BootstrapStatus
-  setSession: (tokens: SessionTokens) => void
-  updateTokens: (tokens: TokenUpdate) => void
-  setUser: (user: AuthUser | null) => void
-  clearUser: () => void
-  setBootstrapStatus: (status: BootstrapStatus) => void
+  sessionId: string
+  user: AuthUser | null
+  sessionGeneration: number
+  setAccessToken: (token: string, sessionId: string) => void
+  setUser: (user: AuthUser) => void
   ensureDeviceId: () => string
   reset: () => void
-}
-
-const initialState: PersistedAuthState = {
-  deviceId: '',
-  user: null,
 }
 
 const browserStorage: StateStorage = {
@@ -65,66 +50,55 @@ function createDeviceId() {
   return `device-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 }
 
-function stripBearerPrefix(token: string) {
-  return token.startsWith('Bearer ') ? token.slice('Bearer '.length) : token
+function readDeviceId(state: unknown) {
+  if (
+    state &&
+    typeof state === 'object' &&
+    'deviceId' in state &&
+    typeof state.deviceId === 'string'
+  ) {
+    return state.deviceId
+  }
+  return ''
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      ...initialState,
+      deviceId: '',
       accessToken: '',
-      bootstrapStatus: 'idle',
-      setSession: ({ accessToken, deviceId }) =>
-        set((state) => ({
-          accessToken: stripBearerPrefix(accessToken),
-          deviceId: deviceId || state.deviceId || createDeviceId(),
-          bootstrapStatus: state.user ? 'ready' : state.bootstrapStatus,
-        })),
-      updateTokens: ({ accessToken }) =>
-        set((state) => ({
-          accessToken: accessToken
-            ? stripBearerPrefix(accessToken)
-            : state.accessToken,
-        })),
-      setUser: (user) =>
-        set({
-          user,
-          bootstrapStatus: user ? 'ready' : 'idle',
-        }),
-      clearUser: () =>
-        set({
-          user: null,
-          bootstrapStatus: 'idle',
-        }),
-      setBootstrapStatus: (bootstrapStatus) => set({ bootstrapStatus }),
+      sessionId: '',
+      user: null,
+      sessionGeneration: 0,
+      setAccessToken: (token, sessionId) =>
+        set({ accessToken: stripBearerPrefix(token), sessionId }),
+      setUser: (user) => set({ user }),
       ensureDeviceId: () => {
         const existingDeviceId = get().deviceId
-        if (existingDeviceId) {
-          return existingDeviceId
-        }
+        if (existingDeviceId) return existingDeviceId
 
         const nextDeviceId = createDeviceId()
         set({ deviceId: nextDeviceId })
         return nextDeviceId
       },
-      reset: () => {
-        const deviceId = get().deviceId || createDeviceId()
-        set({
-          ...initialState,
+      reset: () =>
+        set((state) => ({
           accessToken: '',
-          bootstrapStatus: 'idle',
-          deviceId,
-        })
-      },
+          sessionId: '',
+          user: null,
+          sessionGeneration: state.sessionGeneration + 1,
+        })),
     }),
     {
       name: AUTH_STORAGE_KEY,
       storage: createJSONStorage(() => browserStorage),
-      partialize: (state) => ({
-        deviceId: state.deviceId,
-        user: state.user,
+      version: 1,
+      migrate: (stored) => ({ deviceId: readDeviceId(stored) }),
+      merge: (stored, state) => ({
+        ...state,
+        deviceId: readDeviceId(stored) || state.deviceId,
       }),
+      partialize: (state) => ({ deviceId: state.deviceId }),
     }
   )
 )

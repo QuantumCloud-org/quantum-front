@@ -24,7 +24,7 @@ describe('dept model', () => {
           email: '',
           status: '1',
         },
-        '100'
+        { id: '100', version: '4' }
       )
     ).toMatchObject({
       id: '100',

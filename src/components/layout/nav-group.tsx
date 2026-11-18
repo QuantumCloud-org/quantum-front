@@ -1,7 +1,22 @@
-import { type ReactNode } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { Link, useLocation } from '@tanstack/react-router'
-import { ChevronRight } from 'lucide-react'
-import { DynamicIcon, type IconName } from 'lucide-react/dynamic'
+import {
+  BadgeCheck,
+  BookOpenText,
+  ChevronRight,
+  DatabaseZap,
+  Files,
+  FolderTree,
+  ListTree,
+  Logs,
+  MonitorCog,
+  ServerCog,
+  Settings,
+  Settings2,
+  Users,
+  UsersRound,
+  type LucideIcon,
+} from 'lucide-react'
 import {
   Collapsible,
   CollapsibleContent,
@@ -62,13 +77,38 @@ function NavBadge({ children }: { children: ReactNode }) {
   return <Badge className='rounded-full px-1 py-0 text-xs'>{children}</Badge>
 }
 
+const BackendMenuIcon = lazy(() => import('./backend-menu-icon'))
+const frequentIcons: Record<string, LucideIcon> = {
+  'badge-check': BadgeCheck,
+  'book-open-text': BookOpenText,
+  'database-zap': DatabaseZap,
+  files: Files,
+  'folder-tree': FolderTree,
+  'list-tree': ListTree,
+  logs: Logs,
+  'monitor-cog': MonitorCog,
+  'server-cog': ServerCog,
+  settings: Settings,
+  'settings-2': Settings2,
+  users: Users,
+  'users-round': UsersRound,
+}
+
 function MenuIcon({ icon }: { icon?: NavigationIcon }) {
   if (!icon) {
     return null
   }
 
   if (typeof icon === 'string') {
-    return <DynamicIcon name={icon as IconName} />
+    const Icon = Object.hasOwn(frequentIcons, icon)
+      ? frequentIcons[icon]
+      : undefined
+    if (Icon) return <Icon />
+    return (
+      <Suspense fallback={null}>
+        <BackendMenuIcon name={icon} />
+      </Suspense>
+    )
   }
 
   const Icon = icon

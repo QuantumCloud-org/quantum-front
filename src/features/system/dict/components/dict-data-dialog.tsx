@@ -138,7 +138,9 @@ export function DictDataDialog({
         <Form {...form}>
           <form
             id='dict-data-form'
-            onSubmit={form.handleSubmit(handleSubmit)}
+            onSubmit={(event) => {
+              void form.handleSubmit(handleSubmit)(event)
+            }}
             className='space-y-4'
           >
             <div className='grid gap-4 md:grid-cols-2'>

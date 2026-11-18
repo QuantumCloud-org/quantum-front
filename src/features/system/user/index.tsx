@@ -1,4 +1,5 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { queryOptions, keepPreviousData, useQuery } from '@tanstack/react-query'
+import { queryKeys } from '@/lib/query-keys'
 import { type NavigateFn } from '@/hooks/use-table-url-state'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -21,11 +22,13 @@ export function UserManagementPage({
   navigate,
 }: UserManagementPageProps) {
   const parsedSearch = userManagementSearchSchema.parse(search)
-  const usersQuery = useQuery({
-    queryKey: ['system', 'users', 'list', parsedSearch],
-    queryFn: () => fetchUsers(parsedSearch),
-    placeholderData: keepPreviousData,
-  })
+  const usersQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.userList(parsedSearch),
+      queryFn: ({ signal }) => fetchUsers(parsedSearch, signal),
+      placeholderData: keepPreviousData,
+    })
+  )
 
   const userPage = usersQuery.data ?? {
     pageNum: parsedSearch.page,
@@ -49,12 +52,13 @@ export function UserManagementPage({
           <div>
             <h2 className='text-2xl font-bold tracking-tight'>用户管理</h2>
           </div>
-          <UsersPrimaryButtons />
+          <UsersPrimaryButtons search={parsedSearch} />
         </div>
         <UsersTable
           data={userPage.records}
           total={userPage.total}
           pageCount={userPage.pages}
+          isPageResolved={usersQuery.isSuccess && !usersQuery.isPlaceholderData}
           isLoading={usersQuery.isFetching && !usersQuery.data}
           search={parsedSearch}
           navigate={navigate}

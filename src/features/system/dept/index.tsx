@@ -1,13 +1,17 @@
-'use client'
-
 import { useEffect, useState } from 'react'
 import { AxiosError } from 'axios'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import type { ApiResult } from '@/types/api'
 import { FolderPlus, Save, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { queryKeys } from '@/lib/query-keys'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -52,6 +56,7 @@ import {
   findDeptById,
   findFirstDeptId,
   type DeptFilterStatus,
+  type DeptEditTarget,
   type DeptFormInput,
 } from './model'
 
@@ -81,15 +86,21 @@ export function DepartmentManagementPage() {
     resolver: zodResolver(deptFormSchema),
     defaultValues: buildDeptFormDefaults(),
   })
+  const draftId = useWatch({ control: form.control, name: 'id' })
+  const draftVersion = useWatch({ control: form.control, name: 'version' })
+  const { isDirty } = form.formState
+
   const parentIdValue = useWatch({
     control: form.control,
     name: 'parentId',
   })
 
-  const deptTreeQuery = useQuery({
-    queryKey: ['system', 'dept', 'list', statusFilter],
-    queryFn: () => fetchDeptList({ status: statusFilter }),
-  })
+  const deptTreeQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.deptList(statusFilter),
+      queryFn: () => fetchDeptList({ status: statusFilter }),
+    })
+  )
   const deptTreeData = deptTreeQuery.data
   const deptTree = deptTreeData ?? []
   const resolvedSelectedDeptId =
@@ -97,11 +108,13 @@ export function DepartmentManagementPage() {
       ? selectedDeptId
       : findFirstDeptId(deptTree)
 
-  const deptDetailQuery = useQuery({
-    queryKey: ['system', 'dept', 'detail', resolvedSelectedDeptId],
-    queryFn: () => fetchDeptDetail(resolvedSelectedDeptId!),
-    enabled: resolvedSelectedDeptId !== null && !isCreating,
-  })
+  const deptDetailQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.deptDetail(resolvedSelectedDeptId),
+      queryFn: () => fetchDeptDetail(resolvedSelectedDeptId!),
+      enabled: resolvedSelectedDeptId !== null && !isCreating,
+    })
+  )
   const selectedDept =
     resolvedSelectedDeptId === null
       ? undefined
@@ -116,16 +129,30 @@ export function DepartmentManagementPage() {
   }, [deptTree.length, form, isCreating])
 
   useEffect(() => {
-    if (isCreating || !deptDetailQuery.data) {
+    if (
+      isCreating ||
+      !deptDetailQuery.data ||
+      (isDirty && draftId === deptDetailQuery.data.deptId)
+    ) {
       return
     }
 
     form.reset(
       buildDeptFormDefaults(deptDetailQuery.data, selectedDept?.parentId)
     )
-  }, [deptDetailQuery.data, form, isCreating, selectedDept?.parentId])
+  }, [
+    deptDetailQuery.data,
+    draftId,
+    form,
+    isCreating,
+    isDirty,
+    selectedDept?.parentId,
+  ])
 
   const createMutation = useMutation({
+    onError: () => {
+      // The save handler maps server errors to form fields.
+    },
     mutationFn: (values: DeptFormInput) => createDept(values),
     onSuccess: async (deptId) => {
       setSubmitError(null)
@@ -133,20 +160,38 @@ export function DepartmentManagementPage() {
       setIsCreating(false)
       setSelectedDeptId(deptId)
       await queryClient.invalidateQueries({
-        queryKey: ['system', 'dept'],
+        queryKey: queryKeys.dept(),
       })
     },
   })
 
   const updateMutation = useMutation({
-    mutationFn: (values: DeptFormInput) =>
-      updateDept(values, resolvedSelectedDeptId!),
-    onSuccess: async () => {
+    onError: () => {
+      // The save handler maps server errors to form fields.
+    },
+    mutationFn: ({
+      values,
+      target,
+    }: {
+      values: DeptFormInput
+      target: DeptEditTarget
+    }) => updateDept(values, target),
+    onSuccess: async (_, { target }) => {
       setSubmitError(null)
       toast.success('部门信息已更新。')
       await queryClient.invalidateQueries({
-        queryKey: ['system', 'dept'],
+        queryKey: queryKeys.dept(),
       })
+      const fresh = queryClient.getQueryData<typeof deptDetailQuery.data>(
+        queryKeys.deptDetail(target.id)
+      )
+      if (
+        fresh &&
+        fresh.version !== target.version &&
+        form.getValues('id') === target.id
+      ) {
+        form.reset(buildDeptFormDefaults(fresh))
+      }
     },
   })
 
@@ -164,7 +209,7 @@ export function DepartmentManagementPage() {
       setSubmitError(null)
       setSelectedDeptId(parentId && parentId !== '0' ? parentId : null)
       await queryClient.invalidateQueries({
-        queryKey: ['system', 'dept'],
+        queryKey: queryKeys.dept(),
       })
     },
   })
@@ -321,9 +366,14 @@ export function DepartmentManagementPage() {
         return
       }
 
-      if (resolvedSelectedDeptId !== null) {
-        await updateMutation.mutateAsync(payload)
+      if (values.id !== resolvedSelectedDeptId || !values.id || !values.version) {
+        setSubmitError('部门信息缺失，请刷新后重试。')
+        return
       }
+      await updateMutation.mutateAsync({
+        values: payload,
+        target: { id: values.id, version: values.version },
+      })
     } catch (error) {
       handleSaveError(error)
     }
@@ -466,7 +516,9 @@ export function DepartmentManagementPage() {
                   <Form {...form}>
                     <form
                       id='dept-form'
-                      onSubmit={form.handleSubmit(handleSubmit)}
+                      onSubmit={(event) => {
+                        void form.handleSubmit(handleSubmit)(event)
+                      }}
                       className='flex flex-1 flex-col gap-4'
                     >
                       <div className='grid gap-5 md:grid-cols-2'>
@@ -570,10 +622,18 @@ export function DepartmentManagementPage() {
                           name='phone'
                           render={({ field }) => (
                             <FormItem>
-                              <RequiredFormLabel>联系电话</RequiredFormLabel>
+                              {isCreating ? (
+                                <RequiredFormLabel>联系电话</RequiredFormLabel>
+                              ) : (
+                                <FormLabel>联系电话</FormLabel>
+                              )}
                               <FormControl>
                                 <Input
-                                  placeholder='请输入 11 位手机号'
+                                  placeholder={
+                                    !isCreating
+                                      ? (deptDetailQuery.data?.phone ?? '请输入 11 位手机号')
+                                      : '请输入 11 位手机号'
+                                  }
                                   disabled={isSaving}
                                   {...field}
                                 />
@@ -591,7 +651,11 @@ export function DepartmentManagementPage() {
                               <FormLabel>邮箱</FormLabel>
                               <FormControl>
                                 <Input
-                                  placeholder='name@example.com'
+                                  placeholder={
+                                    !isCreating
+                                      ? (deptDetailQuery.data?.email ?? 'name@example.com')
+                                      : 'name@example.com'
+                                  }
                                   disabled={isSaving}
                                   {...field}
                                 />
@@ -614,7 +678,15 @@ export function DepartmentManagementPage() {
                               取消创建
                             </Button>
                           ) : null}
-                          <Button type='submit' disabled={isSaving}>
+                          <Button
+                            type='submit'
+                            disabled={
+                              isSaving ||
+                              (!isCreating &&
+                                (draftId !== resolvedSelectedDeptId ||
+                                  !draftVersion))
+                            }
+                          >
                             <Save />
                             {isCreating ? '创建部门' : '保存修改'}
                           </Button>

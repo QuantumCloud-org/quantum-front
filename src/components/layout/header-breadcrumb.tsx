@@ -1,6 +1,6 @@
 import { Link, useLocation } from '@tanstack/react-router'
 import { getBreadcrumbsForPath } from '@/app/navigation/registry'
-import { useNavigation } from '@/app/navigation/use-navigation'
+import { useMenuRouters } from '@/app/navigation/use-menu-routers'
 import { House } from 'lucide-react'
 import {
   Breadcrumb,
@@ -40,7 +40,7 @@ function getBreadcrumbs(
 
 export function HeaderBreadcrumb() {
   const pathname = useLocation({ select: (location) => location.pathname })
-  const { menuRouters } = useNavigation()
+  const { data: menuRouters } = useMenuRouters()
   const crumbs = getBreadcrumbs(pathname, menuRouters)
 
   return (

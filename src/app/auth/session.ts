@@ -1,93 +1,125 @@
-import { isAxiosError } from 'axios'
+import { isAxiosError, isCancel } from 'axios'
 import type { AuthUser, LoginCommand } from '@/types/auth'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
+import {
+  assertCurrentSession,
+  closeSessionRequests,
+  isClosedSession,
+  publishSessionId,
+} from '@/lib/auth-session-channel'
+import { refreshAccessToken, withAuthTransition } from '@/lib/http'
 import { fetchCurrentUser, loginByPassword, logoutCurrentUser } from './api'
 
-let bootstrapPromise: Promise<AuthUser | null> | null = null
+let bootstrap: { generation: number; promise: Promise<AuthUser> } | undefined
+let clearPrivateCache: (() => void) | undefined
 
-export async function bootstrapAuthSession() {
-  const authState = useAuthStore.getState()
-  if (authState.accessToken && authState.user) {
-    authState.setBootstrapStatus('ready')
-    return authState.user
-  }
-
-  if (bootstrapPromise) {
-    return bootstrapPromise
-  }
-
-  authState.setBootstrapStatus('loading')
-  bootstrapPromise = fetchCurrentUser()
-    .then((user) => {
-      const currentState = useAuthStore.getState()
-      currentState.setUser(user)
-      currentState.setBootstrapStatus('ready')
-      return user
-    })
-    .catch((error) => {
-      const currentState = useAuthStore.getState()
-      const status = isAxiosError(error) ? error.response?.status : undefined
-
-      if (status === 401 || status === 403) {
-        currentState.reset()
-      } else {
-        currentState.setBootstrapStatus('idle')
-      }
-
-      throw error
-    })
-    .finally(() => {
-      bootstrapPromise = null
-    })
-
-  return bootstrapPromise
+/** Binds session teardown to the application's private query cache. */
+export function setSessionCacheClearer(clear: (() => void) | undefined) {
+  clearPrivateCache = clear
 }
 
+function endSession() {
+  closeSessionRequests()
+  clearPrivateCache?.()
+}
+
+async function restoreSession(generation: number) {
+  assertCurrentSession(generation)
+  if (
+    isClosedSession() ||
+    (import.meta.env.VITE_FEATURE_MOCK !== 'true' &&
+      !useAuthStore.getState().accessToken)
+  ) {
+    await refreshAccessToken()
+  }
+  assertCurrentSession(generation)
+  const user = await fetchCurrentUser()
+  assertCurrentSession(generation)
+  useAuthStore.getState().setUser(user)
+  return user
+}
+
+/** Shares startup restoration with route guards for the same session. */
+export function bootstrapAuthSession(): Promise<AuthUser> {
+  const { user, sessionGeneration } = useAuthStore.getState()
+  if (user) return Promise.resolve(user)
+  if (bootstrap?.generation === sessionGeneration) return bootstrap.promise
+
+  const attempt = {
+    generation: sessionGeneration,
+    promise: restoreSession(sessionGeneration).catch((error: unknown) => {
+      const state = useAuthStore.getState()
+      const status = isAxiosError(error) ? error.response?.status : undefined
+      if (
+        !isCancel(error) &&
+        state.sessionGeneration === sessionGeneration &&
+        status === 401
+      ) {
+        endSession()
+        // Reuse the failed startup result when a protected route loads next.
+        attempt.generation = useAuthStore.getState().sessionGeneration
+      } else if (bootstrap === attempt) {
+        bootstrap = undefined
+      }
+      throw error
+    }),
+  }
+  bootstrap = attempt
+  return attempt.promise
+}
+
+/** Starts a fresh identity boundary and loads its user before navigation. */
 export async function loginWithPassword(
   payload: Omit<LoginCommand, 'deviceId'>
 ) {
-  const authState = useAuthStore.getState()
-  const deviceId = authState.ensureDeviceId()
-
-  authState.setBootstrapStatus('loading')
-
-  let loginResult
-  try {
-    loginResult = await loginByPassword({
-      ...payload,
-      deviceId,
-    })
-  } catch (error) {
-    authState.setBootstrapStatus('idle')
-    throw error
-  }
-
-  authState.setSession({
-    accessToken: loginResult.accessToken,
-    deviceId,
+  const generation = await withAuthTransition('login', async () => {
+    endSession()
+    const { sessionGeneration, ensureDeviceId } = useAuthStore.getState()
+    const deviceId = ensureDeviceId()
+    const result = await loginByPassword({ ...payload, deviceId })
+    assertCurrentSession(sessionGeneration)
+    if (typeof result.sessionId !== 'string' || !result.sessionId) {
+      throw new Error('登录响应缺少会话标识')
+    }
+    useAuthStore.getState().setAccessToken(result.accessToken, result.sessionId)
+    publishSessionId(result.sessionId)
+    return sessionGeneration
   })
 
   try {
-    const user = await fetchCurrentUser()
-    const currentState = useAuthStore.getState()
-    currentState.setUser(user)
-    currentState.setBootstrapStatus('ready')
-    return user
-  } catch {
-    const currentState = useAuthStore.getState()
-    currentState.setBootstrapStatus('idle')
+    return await restoreSession(generation)
+  } catch (error) {
+    if (isCancel(error)) throw error
     toast.error('获取用户信息失败，请刷新重试')
     return null
   }
 }
 
-export async function logoutSession() {
-  try {
-    await logoutCurrentUser()
-  } catch {
-    toast.error('服务端登出失败，请手动关闭浏览器或清除浏览器 Cookie 后重试')
-  } finally {
-    useAuthStore.getState().reset()
-  }
+/** Clears the captured session after its logout request finishes. */
+export function logoutSession() {
+  const { sessionGeneration } = useAuthStore.getState()
+  return withAuthTransition('logout', async () => {
+    try {
+      assertCurrentSession(sessionGeneration)
+    } catch (error) {
+      if (isCancel(error)) return false
+      throw error
+    }
+    try {
+      await logoutCurrentUser()
+    } catch (error) {
+      if (isCancel(error)) return false
+      if (!isAxiosError(error) || error.response?.status !== 401) {
+        toast.error('服务端登出失败，请稍后重试')
+        return false
+      }
+    }
+
+    if (useAuthStore.getState().sessionGeneration !== sessionGeneration)
+      return false
+    endSession()
+    publishSessionId('')
+    return true
+  })
 }

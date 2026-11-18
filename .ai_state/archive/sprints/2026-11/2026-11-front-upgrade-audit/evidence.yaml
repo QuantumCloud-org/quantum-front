@@ -1,0 +1,11 @@
+sprint: "2026-11-front-upgrade-audit"
+shipped: "2026-11-18T05:54:18.754Z"
+tree_sha: "4f99143d7880a9513460a37220fc20d55f7ab1b8"
+review: {run: "a77d6b57-c657-4a34-9639-ba810f76591e", verdict: "PASS"}
+final: {id: "96e9c6deadf1", command: "bun test", kind: "test", exit: 0}
+acceptance:
+  - {id: AC1, text: "`upgrade-report.md` 列出每个依赖的「旧版本 → registry 最新稳定版」，没升的写原因。验证: athena run --covers AC1 -- bun run build", evidence: ["ba4036cbd1d5","96e9c6deadf1"]}
+  - {id: AC2, text: "build、test、lint 全部退出码 0。验证: athena run --covers AC2 -- bun run build && bun test && bun run lint", evidence: ["3107da406c11","ba4036cbd1d5","96e9c6deadf1"]}
+  - {id: AC3, text: "`merged-findings.md` 里 P0-P2 的项都已修，或写明不修的原因。验证: athena run --covers AC3 -- bun test", evidence: ["ba4036cbd1d5","96e9c6deadf1"]}
+  - {id: AC4, text: "按 S17 契约实现单飞 refresh 和请求重放，启动时会尝试一次 refresh，有单测覆盖。验证: athena run --covers AC4 -- bun test", evidence: ["ba4036cbd1d5","96e9c6deadf1"]}
+  - {id: AC5, text: "独立 review 放行。", evidence: []}

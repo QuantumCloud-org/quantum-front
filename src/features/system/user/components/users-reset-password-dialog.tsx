@@ -2,8 +2,14 @@ import { useEffect } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { queryKeys } from '@/lib/query-keys'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -38,7 +44,7 @@ const resetPasswordSchema = z
     confirmPassword: z.string().min(1, '请再次输入新密码。'),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: '两次输入的新密码不一致。',
+    error: '两次输入的新密码不一致。',
     path: ['confirmPassword'],
   })
 
@@ -66,12 +72,14 @@ export function UsersResetPasswordDialog({
     },
   })
 
-  const detailQuery = useQuery({
-    queryKey: ['system', 'users', 'detail', currentRow.id],
-    queryFn: () => fetchUserDetail(currentRow.id),
-    enabled: open,
-    staleTime: 0,
-  })
+  const detailQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.userDetail(currentRow.id),
+      queryFn: () => fetchUserDetail(currentRow.id),
+      enabled: open,
+      staleTime: 0,
+    })
+  )
 
   useEffect(() => {
     form.reset({
@@ -89,7 +97,7 @@ export function UsersResetPasswordDialog({
       form.reset()
       onOpenChange(false)
       await queryClient.invalidateQueries({
-        queryKey: ['system', 'users', 'detail', currentRow.id],
+        queryKey: queryKeys.userDetail(currentRow.id),
       })
     },
   })
@@ -118,16 +126,18 @@ export function UsersResetPasswordDialog({
         <Form {...form}>
           <form
             id='user-reset-password-form'
-            onSubmit={form.handleSubmit((values) => {
-              if (values.version === null) {
-                return
-              }
+            onSubmit={(event) => {
+              void form.handleSubmit((values) => {
+                if (values.version === null) {
+                  return
+                }
 
-              mutation.mutate({
-                ...values,
-                version: values.version,
-              })
-            })}
+                mutation.mutate({
+                  ...values,
+                  version: values.version,
+                })
+              })(event)
+            }}
             className='space-y-4'
           >
             <FormField

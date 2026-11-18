@@ -1,10 +1,10 @@
-import { toId } from '@/lib/ids'
-
 export type DictStatus = 0 | 1
 export type DictDefaultFlag = 'Y' | 'N'
 
 export type DictType = {
   id: string
+  version: string
+  business: string | null
   dictName: string
   dictType: string
   status: DictStatus
@@ -14,6 +14,7 @@ export type DictType = {
 
 export type DictData = {
   id: string
+  version: string
   dictType: string
   dictLabel: string
   dictValue: string
@@ -33,6 +34,8 @@ export type DictTypeListQuery = {
 }
 
 export type DictDataListQuery = {
+  pageNum: number
+  pageSize: number
   dictType: string
   dictLabel?: string
   status?: DictStatus
@@ -47,7 +50,6 @@ export type PagedResult<T> = {
 }
 
 export type DictTypeFormInput = {
-  id: string | null
   dictName: string
   dictType: string
   status: '0' | '1'
@@ -55,7 +57,6 @@ export type DictTypeFormInput = {
 }
 
 export type DictDataFormInput = {
-  id: string | null
   dictType: string
   dictLabel: string
   dictValue: string
@@ -80,7 +81,6 @@ export function buildDictTypeFormDefaults(
   detail?: Partial<DictType>
 ): DictTypeFormInput {
   return {
-    id: detail?.id ?? null,
     dictName: detail?.dictName ?? '',
     dictType: detail?.dictType ?? '',
     status: String(detail?.status ?? 1) as '0' | '1',
@@ -93,7 +93,6 @@ export function buildDictDataFormDefaults(
   detail?: Partial<DictData>
 ): DictDataFormInput {
   return {
-    id: detail?.id ?? null,
     dictType: detail?.dictType ?? dictType,
     dictLabel: detail?.dictLabel ?? '',
     dictValue: detail?.dictValue ?? '',
@@ -106,19 +105,23 @@ export function buildDictDataFormDefaults(
   }
 }
 
-export function buildDictTypePayload(input: DictTypeFormInput) {
+/** Selects the writable fields for a dictionary type. */
+export function buildDictTypePayload(
+  input: DictTypeFormInput,
+  business?: string | null
+) {
   return {
-    ...(input.id ? { id: toId(input.id) } : {}),
     dictName: trimOrEmpty(input.dictName),
+    ...(business != null ? { business } : {}),
     dictType: trimOrEmpty(input.dictType),
     status: Number(input.status) === 0 ? 0 : 1,
     remark: toNullableText(input.remark),
   }
 }
 
+/** Selects the writable fields for a dictionary item. */
 export function buildDictDataPayload(input: DictDataFormInput) {
   return {
-    ...(input.id ? { id: toId(input.id) } : {}),
     dictType: trimOrEmpty(input.dictType),
     dictLabel: trimOrEmpty(input.dictLabel),
     dictValue: trimOrEmpty(input.dictValue),

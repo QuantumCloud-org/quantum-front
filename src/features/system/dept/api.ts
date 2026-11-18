@@ -1,27 +1,20 @@
+import { queryOptions } from '@tanstack/react-query'
 import type { ApiResult } from '@/types/api'
+import { getRecord } from '@/lib/api-normalize'
 import { apiClient } from '@/lib/http'
 import { toId } from '@/lib/ids'
+import { queryKeys } from '@/lib/query-keys'
 import {
   buildDeptCreatePayload,
   buildDeptListQuery,
   buildDeptUpdatePayload,
   dedupeDeptTreeRoots,
   type DeptDetail,
+  type DeptEditTarget,
   type DeptFormInput,
   type DeptListSearch,
   type DeptTreeNode,
 } from './model'
-
-function unwrapResult<T>(result: ApiResult<T>) {
-  return result.data
-}
-
-function getRecord(input: unknown) {
-  return (input && typeof input === 'object' ? input : {}) as Record<
-    string,
-    unknown
-  >
-}
 
 function normalizeDeptTreeNode(input: unknown): DeptTreeNode {
   const record = getRecord(input)
@@ -33,6 +26,7 @@ function normalizeDeptTreeNode(input: unknown): DeptTreeNode {
 
   return {
     deptId,
+    version: toId(record.version),
     parentId,
     deptName: String(record.deptName ?? record.label ?? ''),
     orderNum:
@@ -49,6 +43,60 @@ function normalizeDeptTreeNode(input: unknown): DeptTreeNode {
   }
 }
 
+type DeptSelectNode = { id: string; label: string; children: DeptSelectNode[] }
+
+function normalizeDeptSelectNode(
+  input: unknown,
+  seen: Set<string>
+): DeptSelectNode[] {
+  const record = getRecord(input)
+  const deptId = toId(record.id ?? record.deptId)
+  const childrenSource = Array.isArray(record.children) ? record.children : []
+
+  if (!deptId || deptId === '0') {
+    return childrenSource.flatMap((child) =>
+      normalizeDeptSelectNode(child, seen)
+    )
+  }
+
+  if (seen.has(deptId)) {
+    return []
+  }
+
+  seen.add(deptId)
+
+  return [
+    {
+      id: deptId,
+      label: String(record.label ?? record.deptName ?? ''),
+      children: childrenSource.flatMap((child) =>
+        normalizeDeptSelectNode(child, seen)
+      ),
+    },
+  ]
+}
+
+async function fetchDeptTreeSelect(signal: AbortSignal) {
+  const response = await apiClient.get<ApiResult<unknown[]>>(
+    '/system/dept/treeselect',
+    { signal }
+  )
+
+  const seen = new Set<string>()
+  return response.data.data.flatMap((node) =>
+    normalizeDeptSelectNode(node, seen)
+  )
+}
+
+/** Defines the department picker query shared by user and role forms. */
+export function deptTreeSelectQueryOptions() {
+  return queryOptions({
+    queryKey: queryKeys.deptTreeSelect(),
+    queryFn: ({ signal }) => fetchDeptTreeSelect(signal),
+    staleTime: 60_000,
+  })
+}
+
 export async function fetchDeptList(search?: Partial<DeptListSearch>) {
   const response = await apiClient.get<ApiResult<DeptTreeNode[]>>(
     '/system/dept/list',
@@ -57,9 +105,7 @@ export async function fetchDeptList(search?: Partial<DeptListSearch>) {
     }
   )
 
-  return dedupeDeptTreeRoots(
-    unwrapResult(response.data).map(normalizeDeptTreeNode)
-  )
+  return dedupeDeptTreeRoots(response.data.data.map(normalizeDeptTreeNode))
 }
 
 export async function fetchDeptDetail(deptId: string) {
@@ -67,7 +113,7 @@ export async function fetchDeptDetail(deptId: string) {
     `/system/dept/${deptId}`
   )
 
-  return normalizeDeptTreeNode(unwrapResult(response.data))
+  return normalizeDeptTreeNode(response.data.data)
 }
 
 export async function createDept(input: DeptFormInput) {
@@ -76,20 +122,20 @@ export async function createDept(input: DeptFormInput) {
     buildDeptCreatePayload(input)
   )
 
-  return toId(unwrapResult(response.data))
+  return toId(response.data.data)
 }
 
-export async function updateDept(input: DeptFormInput, id: string) {
+export async function updateDept(input: DeptFormInput, target: DeptEditTarget) {
   const response = await apiClient.put<ApiResult<null>>(
     '/system/dept',
-    buildDeptUpdatePayload(input, id)
+    buildDeptUpdatePayload(input, target)
   )
 
-  return unwrapResult(response.data)
+  return response.data.data
 }
 
 export async function deleteDept(id: string) {
   const response = await apiClient.delete<ApiResult<null>>(`/system/dept/${id}`)
 
-  return unwrapResult(response.data)
+  return response.data.data
 }

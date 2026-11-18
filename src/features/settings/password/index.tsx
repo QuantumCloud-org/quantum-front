@@ -1,10 +1,11 @@
 import { ContentSection } from '../components/content-section'
-import { PasswordForm } from './components/password-form'
 
 export function SettingsPassword() {
   return (
     <ContentSection>
-      <PasswordForm />
+      <p className='text-muted-foreground'>
+        自助修改密码暂未开放，请联系管理员。
+      </p>
     </ContentSection>
   )
 }

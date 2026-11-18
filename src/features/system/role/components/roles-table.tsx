@@ -1,12 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
-  type VisibilityState,
-  type ColumnDef,
+  type ColumnVisibilityState,
+  type RowSelectionState,
   flexRender,
-  getCoreRowModel,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
-  useReactTable,
+  useTable,
 } from '@tanstack/react-table'
 import { useAuthStore } from '@/stores/auth-store'
 import { cn } from '@/lib/utils'
@@ -20,6 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
+import { serverTableFeatures } from '@/components/data-table/server-table-features'
 import { roleStatuses } from '../data'
 import { type Role } from '../model'
 import {
@@ -30,6 +28,12 @@ import { type RoleManagementSearchState } from '../search-schema'
 import { DataTableBulkActions } from './data-table-bulk-actions'
 import { getRolesColumns } from './roles-columns'
 
+const columnFiltersConfig = [
+  { columnId: 'roleName', searchKey: 'roleName', type: 'string' },
+  { columnId: 'roleKey', searchKey: 'roleKey', type: 'string' },
+  { columnId: 'status', searchKey: 'status', type: 'array' },
+] satisfies NonNullable<Parameters<typeof useTableUrlState>[0]['columnFilters']>
+
 type RolesTableProps = {
   data: Role[]
   search: RoleManagementSearchState
@@ -37,6 +41,7 @@ type RolesTableProps = {
   pageCount: number
   total: number
   isLoading: boolean
+  isPageResolved: boolean
 }
 
 export function RolesTable({
@@ -46,17 +51,35 @@ export function RolesTable({
   pageCount,
   total,
   isLoading,
+  isPageResolved,
 }: RolesTableProps) {
   const authUser = useAuthStore((state) => state.user)
   const { canBulkDeleteRoles, hasRowActions } =
     getRoleManagementAccess(authUser)
-  const columns = getRolesColumns({
-    enableBulkActions: canBulkDeleteRoles,
-    enableRowActions: hasRowActions,
-  }) as ColumnDef<Role>[]
+  const columns = useMemo(
+    () =>
+      getRolesColumns({
+        enableBulkActions: canBulkDeleteRoles,
+        enableRowActions: hasRowActions,
+      }),
+    [canBulkDeleteRoles, hasRowActions]
+  )
 
-  const [rowSelection, setRowSelection] = useState({})
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const selectionScope = JSON.stringify(search)
+  const [selection, setSelection] = useState<{
+    data: Role[]
+    scope: string
+    rows: RowSelectionState
+  }>({ data, scope: selectionScope, rows: {} })
+  const selectionIsCurrent =
+    selection.data === data && selection.scope === selectionScope
+  if (!selectionIsCurrent)
+    setSelection({ data, scope: selectionScope, rows: {} })
+  const rowSelection =
+    selectionIsCurrent && isPageResolved ? selection.rows : {}
+
+  const [columnVisibility, setColumnVisibility] =
+    useState<ColumnVisibilityState>({})
 
   const {
     columnFilters,
@@ -69,17 +92,14 @@ export function RolesTable({
     navigate,
     pagination: { defaultPage: 1, defaultPageSize: 10 },
     globalFilter: { enabled: false },
-    columnFilters: [
-      { columnId: 'roleName', searchKey: 'roleName', type: 'string' },
-      { columnId: 'roleKey', searchKey: 'roleKey', type: 'string' },
-      { columnId: 'status', searchKey: 'status', type: 'array' },
-    ],
+    columnFilters: columnFiltersConfig,
   })
 
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const table = useReactTable({
+  const table = useTable({
+    features: serverTableFeatures,
     data,
     columns,
+    getRowId: (row) => row.id,
     state: {
       pagination,
       rowSelection,
@@ -91,19 +111,26 @@ export function RolesTable({
     pageCount: Math.max(pageCount, 1),
     rowCount: total,
     enableRowSelection: (row) =>
-      canBulkDeleteRoles && !isProtectedSystemRole(row.original.id),
+      isPageResolved &&
+      canBulkDeleteRoles &&
+      !isProtectedSystemRole(row.original.id),
     onPaginationChange,
     onColumnFiltersChange,
-    onRowSelectionChange: setRowSelection,
+    onRowSelectionChange: (update) => {
+      if (!isPageResolved) return
+      setSelection({
+        data,
+        scope: selectionScope,
+        rows: typeof update === 'function' ? update(rowSelection) : update,
+      })
+    },
     onColumnVisibilityChange: setColumnVisibility,
-    getCoreRowModel: getCoreRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
   })
 
   useEffect(() => {
-    ensurePageInRange(Math.max(pageCount, 1))
-  }, [pageCount, ensurePageInRange])
+    if (isPageResolved)
+      ensurePageInRange(Math.max(pageCount, 1), { resetTo: 'last' })
+  }, [pageCount, ensurePageInRange, isPageResolved])
 
   return (
     <div

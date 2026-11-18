@@ -1,19 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { AxiosError } from 'axios'
 import {
+  queryOptions,
   keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import {
-  getCoreRowModel,
-  type ColumnDef,
-  useReactTable,
-} from '@tanstack/react-table'
+import { type ColumnDef, useTable } from '@tanstack/react-table'
 import { useAccess } from '@/app/auth/access'
 import { RefreshCw, Trash2, Upload as UploadIcon } from 'lucide-react'
 import { toast } from 'sonner'
+import { queryKeys } from '@/lib/query-keys'
 import { type NavigateFn, useTableUrlState } from '@/hooks/use-table-url-state'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,6 +24,10 @@ import {
   DataTablePagination,
   SelectionBulkActions,
 } from '@/components/data-table'
+import {
+  serverTableFeatures,
+  type ServerTableFeatures,
+} from '@/components/data-table/server-table-features'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
@@ -49,7 +51,7 @@ type Props = {
   navigate: NavigateFn
 }
 
-const paginationColumns: ColumnDef<SysFile>[] = []
+const paginationColumns: ColumnDef<ServerTableFeatures, SysFile>[] = []
 
 export function FileManagementPage({ search, navigate }: Props) {
   const parsed = fileManagementSearchSchema.parse(search)
@@ -70,13 +72,20 @@ export function FileManagementPage({ search, navigate }: Props) {
     bizType: parsed.bizType ?? '',
   })
 
-  useEffect(() => {
+  const filterSource = JSON.stringify([
+    parsed.bizType,
+    parsed.extension,
+    parsed.originalName,
+  ])
+  const [previousFilterSource, setPreviousFilterSource] = useState(filterSource)
+  if (previousFilterSource !== filterSource) {
+    setPreviousFilterSource(filterSource)
     setLocalFilters({
       originalName: parsed.originalName ?? '',
       extension: parsed.extension ?? '',
       bizType: parsed.bizType ?? '',
     })
-  }, [parsed.bizType, parsed.extension, parsed.originalName])
+  }
 
   const { pagination, onPaginationChange, ensurePageInRange } =
     useTableUrlState({
@@ -97,19 +106,21 @@ export function FileManagementPage({ search, navigate }: Props) {
     [parsed]
   )
 
-  const filesQuery = useQuery({
-    queryKey: ['system', 'files', 'page', query],
-    queryFn: () => fetchFilePage(query),
-    placeholderData: keepPreviousData,
-  })
+  const filesQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.filePage(query),
+      queryFn: () => fetchFilePage(query),
+      placeholderData: keepPreviousData,
+    })
+  )
 
   const deleteMutation = useMutation({
     mutationFn: (ids: string[]) => deleteFiles(ids),
-    onSuccess: (count) => {
+    onSuccess: async (count) => {
       toast.success(`已删除 ${count} 个文件`)
       setSelectedIds(new Set())
-      queryClient.invalidateQueries({
-        queryKey: ['system', 'files', 'page'],
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.filePage(),
       })
     },
     onError: (err) => {
@@ -127,8 +138,8 @@ export function FileManagementPage({ search, navigate }: Props) {
     records: [] as SysFile[],
   }
 
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const paginationTable = useReactTable({
+  const paginationTable = useTable({
+    features: serverTableFeatures,
     data: page.records,
     columns: paginationColumns,
     state: { pagination },
@@ -136,12 +147,18 @@ export function FileManagementPage({ search, navigate }: Props) {
     pageCount: Math.max(page.pages, 1),
     rowCount: page.total,
     onPaginationChange,
-    getCoreRowModel: getCoreRowModel(),
   })
 
   useEffect(() => {
-    ensurePageInRange(Math.max(page.pages, 1))
-  }, [ensurePageInRange, page.pages])
+    if (filesQuery.isSuccess && !filesQuery.isPlaceholderData) {
+      ensurePageInRange(Math.max(page.pages, 1), { resetTo: 'last' })
+    }
+  }, [
+    ensurePageInRange,
+    page.pages,
+    filesQuery.isSuccess,
+    filesQuery.isPlaceholderData,
+  ])
 
   function updateSearch(next: Partial<FileManagementSearchState>) {
     navigate({
@@ -221,7 +238,9 @@ export function FileManagementPage({ search, navigate }: Props) {
             <Button
               variant='outline'
               size='sm'
-              onClick={() => filesQuery.refetch()}
+              onClick={() => {
+                void filesQuery.refetch()
+              }}
               disabled={filesQuery.isFetching}
             >
               <RefreshCw
@@ -257,7 +276,9 @@ export function FileManagementPage({ search, navigate }: Props) {
           onToggleSelectAll={toggleSelectAll}
           onToggleSelect={toggleSelect}
           onPreview={handlePreview}
-          onDownload={handleDownload}
+          onDownload={(item) => {
+            void handleDownload(item)
+          }}
           onDelete={setDeleteTarget}
         />
 
@@ -294,11 +315,11 @@ export function FileManagementPage({ search, navigate }: Props) {
       <FileUploadDialog
         open={uploadOpen}
         onOpenChange={setUploadOpen}
-        onUploaded={() =>
-          queryClient.invalidateQueries({
-            queryKey: ['system', 'files', 'page'],
+        onUploaded={() => {
+          void queryClient.invalidateQueries({
+            queryKey: queryKeys.filePage(),
           })
-        }
+        }}
       />
 
       <FilePreviewDialog

@@ -4,8 +4,8 @@
 version: "9.9.0"
 
 # === PACE 路由状态 ===
-path: ""                          # Hotfix | Bugfix | Quick | Feature | Refactor | System
-stage: ""                         # 无进行中 sprint (S4 状态 bridge 落 quantum-backend .ai_state)
+path: ""  # Hotfix | Bugfix | Quick | Feature | Refactor | System
+stage: ""  # 无进行中 sprint (S4 状态 bridge 落 quantum-backend .ai_state)
 current_sprint_slug: ""
 current_roadmap_slug: ""
 skip_polish: false
@@ -14,7 +14,7 @@ skip_runtime_verify: false
 
 # === 路由审议 (v9.9.0) ===
 route_confidence: 0.0
-route_history: []
+route_history: ["2026-11-18 shipped 2026-11-front-upgrade-audit","2026-11-18 System 2026-11-front-upgrade-audit"]
 plan_model: ""
 
 # === 平台与版本 ===

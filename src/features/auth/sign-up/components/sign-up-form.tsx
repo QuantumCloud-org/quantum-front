@@ -25,7 +25,7 @@ const formSchema = z
     confirmPassword: z.string().min(1, '请再次输入密码'),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: '两次输入的密码不一致。',
+    error: '两次输入的密码不一致。',
     path: ['confirmPassword'],
   })
 
@@ -44,10 +44,8 @@ export function SignUpForm({
     },
   })
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
+  function onSubmit() {
     setIsLoading(true)
-    // eslint-disable-next-line no-console
-    console.log(data)
 
     setTimeout(() => {
       setIsLoading(false)
@@ -57,7 +55,9 @@ export function SignUpForm({
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={(event) => {
+          void form.handleSubmit(onSubmit)(event)
+        }}
         className={cn('grid gap-3', className)}
         {...props}
       >

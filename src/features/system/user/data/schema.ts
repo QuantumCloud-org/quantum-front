@@ -47,9 +47,3 @@ export type UserRoleOption = {
   roleKey: string
   status: number
 }
-
-export type DeptTreeNode = {
-  id: string
-  label: string
-  children: DeptTreeNode[]
-}

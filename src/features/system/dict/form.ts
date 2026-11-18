@@ -11,7 +11,6 @@ function isAllowedDefaultFlag(value: string) {
 const dictTypePattern = /^[A-Za-z][A-Za-z0-9:_-]*$/
 
 export const dictTypeFormSchema = z.object({
-  id: z.string().nullable(),
   dictName: z
     .string()
     .trim()
@@ -27,13 +26,12 @@ export const dictTypeFormSchema = z.object({
       '分组编码需以字母开头，仅支持字母、数字、下划线、冒号和连字符。'
     ),
   status: z.string().refine(isAllowedStatus, {
-    message: '请选择分组状态。',
+    error: '请选择分组状态。',
   }),
   remark: z.string().trim().max(500, '备注长度不能超过 500 个字符。'),
 })
 
 export const dictDataFormSchema = z.object({
-  id: z.string().nullable(),
   dictType: z.string().trim().min(1, '缺少字典分组，请重新选择。'),
   dictLabel: z
     .string()
@@ -50,15 +48,15 @@ export const dictDataFormSchema = z.object({
     .trim()
     .min(1, '请输入排序值。')
     .refine((value) => /^\d+$/.test(value), {
-      message: '排序值必须为非负整数。',
+      error: '排序值必须为非负整数。',
     }),
   cssClass: z.string().trim().max(100, '标签样式长度不能超过 100 个字符。'),
   listClass: z.string().trim().max(100, '列表样式长度不能超过 100 个字符。'),
   isDefault: z.string().refine(isAllowedDefaultFlag, {
-    message: '请选择是否默认。',
+    error: '请选择是否默认。',
   }),
   status: z.string().refine(isAllowedStatus, {
-    message: '请选择字典状态。',
+    error: '请选择字典状态。',
   }),
   remark: z.string().trim().max(500, '备注长度不能超过 500 个字符。'),
 })
@@ -138,7 +136,7 @@ function extractServerErrors<TField extends string>(
 export function extractDictTypeServerErrors(message?: string) {
   return extractServerErrors(
     message,
-    new Set<DictTypeField>(['id', 'dictName', 'dictType', 'status', 'remark']),
+    new Set<DictTypeField>(['dictName', 'dictType', 'status', 'remark']),
     dictTypeFieldPatterns
   )
 }
@@ -147,7 +145,6 @@ export function extractDictDataServerErrors(message?: string) {
   return extractServerErrors(
     message,
     new Set<DictDataField>([
-      'id',
       'dictType',
       'dictLabel',
       'dictValue',

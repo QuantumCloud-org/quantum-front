@@ -1,5 +1,5 @@
 import type { AxiosError } from 'axios'
-import { useQuery } from '@tanstack/react-query'
+import { queryOptions, useQuery } from '@tanstack/react-query'
 import type { ApiResult } from '@/types/api'
 import { Activity, Database, HardDrive, RefreshCw, Server } from 'lucide-react'
 import {
@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { queryKeys } from '@/lib/query-keys'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -109,10 +110,12 @@ function InfoField({ label, value }: { label: string; value: string }) {
 }
 
 export function ServerMonitorPage() {
-  const serverQuery = useQuery({
-    queryKey: ['monitor', 'server', 'info'],
-    queryFn: fetchServerInfo,
-  })
+  const serverQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.serverInfo(),
+      queryFn: fetchServerInfo,
+    })
+  )
 
   const server = serverQuery.data
   const overview = server ? buildServerOverview(server) : null
@@ -142,7 +145,9 @@ export function ServerMonitorPage() {
             type='button'
             variant='outline'
             size='sm'
-            onClick={() => serverQuery.refetch()}
+            onClick={() => {
+              void serverQuery.refetch()
+            }}
             disabled={serverQuery.isFetching}
           >
             <RefreshCw

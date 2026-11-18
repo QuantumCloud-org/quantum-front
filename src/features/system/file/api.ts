@@ -7,10 +7,6 @@ import {
   normalizeSysFile,
 } from './model'
 
-function unwrapResult<T>(result: ApiResult<T>) {
-  return result.data
-}
-
 export async function fetchFilePage(query: SysFileQuery): Promise<SysFilePage> {
   const response = await apiClient.get<ApiResult<Record<string, unknown>>>(
     '/system/file/list',
@@ -28,7 +24,7 @@ export async function fetchFilePage(query: SysFileQuery): Promise<SysFilePage> {
     }
   )
 
-  const page = unwrapResult(response.data)
+  const page = response.data.data
   const records = Array.isArray(page.records) ? page.records : []
 
   return {
@@ -38,11 +34,6 @@ export async function fetchFilePage(query: SysFileQuery): Promise<SysFilePage> {
     pages: Number(page.pages ?? 0),
     records: records.map(normalizeSysFile),
   }
-}
-
-export async function fetchFileDetail(id: string): Promise<SysFile> {
-  const response = await apiClient.get<ApiResult<unknown>>(`/system/file/${id}`)
-  return normalizeSysFile(unwrapResult(response.data))
 }
 
 export type UploadFileParams = {
@@ -72,7 +63,7 @@ export async function uploadFile(params: UploadFileParams): Promise<SysFile> {
     }
   )
 
-  return normalizeSysFile(unwrapResult(response.data))
+  return normalizeSysFile(response.data.data)
 }
 
 export async function deleteFiles(ids: string[]): Promise<number> {
@@ -80,19 +71,7 @@ export async function deleteFiles(ids: string[]): Promise<number> {
   const response = await apiClient.delete<ApiResult<number>>(
     `/system/file/${ids.join(',')}`
   )
-  return Number(unwrapResult(response.data) ?? 0)
-}
-
-function buildAuthorizedBlobUrl(id: string, endpoint: 'download' | 'preview') {
-  return `${apiClient.defaults.baseURL ?? ''}/system/file/${endpoint}/${id}`
-}
-
-export function getDownloadUrl(id: string) {
-  return buildAuthorizedBlobUrl(id, 'download')
-}
-
-export function getPreviewUrl(id: string) {
-  return buildAuthorizedBlobUrl(id, 'preview')
+  return Number(response.data.data ?? 0)
 }
 
 export async function fetchBlob(

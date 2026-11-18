@@ -1,11 +1,15 @@
-'use client'
-
-import { useEffect } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { handleServerError } from '@/lib/handle-server-error'
+import { queryKeys } from '@/lib/query-keys'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -28,11 +32,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { SelectDropdown } from '@/components/select-dropdown'
+import { deptTreeSelectQueryOptions } from '@/features/system/dept/api'
 import {
   createRole,
-  fetchDeptTreeSelect,
   fetchMenuTreeSelect,
   fetchRoleDeptIds,
+  fetchRoleDetail,
   fetchRoleMenuIds,
   updateRole,
 } from '../api'
@@ -76,37 +81,53 @@ export function RolesActionDialog({
     name: 'dataScope',
   })
 
-  const menuTreeQuery = useQuery({
-    queryKey: ['system', 'menu', 'treeselect'],
-    queryFn: fetchMenuTreeSelect,
-    enabled: open,
-    staleTime: 60_000,
-  })
+  const menuTreeQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.menuTreeSelect(),
+      queryFn: fetchMenuTreeSelect,
+      enabled: open,
+      staleTime: 60_000,
+    })
+  )
 
-  const isCustomDataScopeRow = currentRow?.dataScope === 4
+  const roleDetailQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.roleDetail(currentRow?.id),
+      queryFn: () => fetchRoleDetail(currentRow!.id),
+      enabled: open && Boolean(currentRow?.id),
+      staleTime: 0,
+    })
+  )
+
+  const isCustomDataScopeRow = roleDetailQuery.data?.dataScope === 4
   const isCustomScopeExpected =
     isCustomDataScopeRow || form.getValues('dataScope') === '4'
 
-  const deptTreeQuery = useQuery({
-    queryKey: ['system', 'dept', 'treeselect'],
-    queryFn: fetchDeptTreeSelect,
-    enabled: open && isCustomScopeExpected,
-    staleTime: 60_000,
-  })
+  const deptTreeQuery = useQuery(
+    queryOptions({
+      ...deptTreeSelectQueryOptions(),
+      enabled: open && isCustomScopeExpected,
+    })
+  )
 
-  const roleMenuIdsQuery = useQuery({
-    queryKey: ['system', 'role', 'menus', currentRow?.id],
-    queryFn: () => fetchRoleMenuIds(currentRow!.id),
-    enabled: open && isEdit && Boolean(currentRow?.id),
-    staleTime: 0,
-  })
+  const roleMenuIdsQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.roleMenus(currentRow?.id),
+      queryFn: () => fetchRoleMenuIds(currentRow!.id),
+      enabled: open && isEdit && Boolean(currentRow?.id),
+      staleTime: 0,
+    })
+  )
 
-  const roleDeptIdsQuery = useQuery({
-    queryKey: ['system', 'role', 'depts', currentRow?.id],
-    queryFn: () => fetchRoleDeptIds(currentRow!.id),
-    enabled: open && isEdit && Boolean(currentRow?.id) && isCustomDataScopeRow,
-    staleTime: 0,
-  })
+  const roleDeptIdsQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.roleDepts(currentRow?.id),
+      queryFn: () => fetchRoleDeptIds(currentRow!.id),
+      enabled:
+        open && isEdit && Boolean(currentRow?.id) && isCustomDataScopeRow,
+      staleTime: 0,
+    })
+  )
 
   const createMutation = useMutation({
     mutationFn: createRole,
@@ -115,7 +136,7 @@ export function RolesActionDialog({
       form.reset(buildRoleActionDefaultValues())
       onOpenChange(false)
       await queryClient.invalidateQueries({
-        queryKey: ['system', 'role', 'list'],
+        queryKey: queryKeys.roleList(),
       })
     },
     onError: handleServerError,
@@ -127,68 +148,65 @@ export function RolesActionDialog({
       toast.success(`角色“${currentRow?.roleName}”已更新。`)
       onOpenChange(false)
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.navigation() }),
         queryClient.invalidateQueries({
-          queryKey: ['system', 'role', 'list'],
+          queryKey: queryKeys.roleDetail(currentRow?.id),
         }),
         queryClient.invalidateQueries({
-          queryKey: ['system', 'role', 'detail', currentRow?.id],
+          queryKey: queryKeys.roleList(),
         }),
         queryClient.invalidateQueries({
-          queryKey: ['system', 'role', 'menus', currentRow?.id],
+          queryKey: queryKeys.roleMenus(currentRow?.id),
         }),
       ])
     },
     onError: handleServerError,
   })
 
-  useEffect(() => {
-    if (!open) {
-      form.reset(buildRoleActionDefaultValues())
-      return
-    }
+  const [initialValues, setInitialValues] = useState<RoleActionForm | null>(
+    null
+  )
+  const canInitialize =
+    !isEdit ||
+    (roleDetailQuery.isSuccess &&
+      roleDetailQuery.fetchStatus === 'idle' &&
+      roleMenuIdsQuery.isSuccess &&
+      roleMenuIdsQuery.fetchStatus === 'idle' &&
+      (!isCustomDataScopeRow ||
+        (roleDeptIdsQuery.isSuccess &&
+          roleDeptIdsQuery.fetchStatus === 'idle')))
 
-    if (isEdit && roleMenuIdsQuery.isFetching) {
-      return
-    }
-
-    if (isEdit && isCustomDataScopeRow && roleDeptIdsQuery.isFetching) {
-      return
-    }
-
-    form.reset(
+  if (!open && initialValues) setInitialValues(null)
+  if (open && !initialValues && canInitialize) {
+    // Freeze the freshly loaded permissions so later refetches preserve the draft.
+    setInitialValues(
       buildRoleActionDefaultValues(
-        currentRow,
-        isEdit ? (roleMenuIdsQuery.data ?? []) : [],
-        isEdit && isCustomDataScopeRow ? (roleDeptIdsQuery.data ?? []) : []
+        roleDetailQuery.data,
+        roleMenuIdsQuery.data ?? [],
+        isCustomDataScopeRow ? (roleDeptIdsQuery.data ?? []) : []
       )
     )
-  }, [
-    open,
-    isEdit,
-    currentRow,
-    isCustomDataScopeRow,
-    roleMenuIdsQuery.data,
-    roleMenuIdsQuery.isFetching,
-    roleDeptIdsQuery.data,
-    roleDeptIdsQuery.isFetching,
-    form,
-  ])
+  }
+
+  useLayoutEffect(() => {
+    if (initialValues) form.reset(initialValues)
+  }, [form, initialValues])
 
   const isCustomScope = dataScopeValue === '4'
   const isSaving = createMutation.isPending || updateMutation.isPending
-  const isMenuLoading = menuTreeQuery.isFetching || menuTreeQuery.isPending
-  const isDeptLoading =
-    isCustomScope && (deptTreeQuery.isFetching || deptTreeQuery.isPending)
-  const isEditDataLoading =
-    isEdit &&
-    (roleMenuIdsQuery.isFetching ||
-      !roleMenuIdsQuery.data ||
-      (isCustomDataScopeRow &&
-        (roleDeptIdsQuery.isFetching || !roleDeptIdsQuery.data)))
+  const isMenuLoading = menuTreeQuery.isPending
+  const isDeptLoading = isCustomScope && deptTreeQuery.isPending
+  const isEditDataLoading = isEdit && !initialValues
   const hasLoadError =
-    menuTreeQuery.isError || (isEdit && roleMenuIdsQuery.isError)
+    (!menuTreeQuery.data && menuTreeQuery.isError) ||
+    (isEditDataLoading &&
+      (roleDetailQuery.isError ||
+        roleMenuIdsQuery.isError ||
+        (isCustomDataScopeRow && roleDeptIdsQuery.isError)))
   const hasDeptScopeError =
-    isCustomScope && (deptTreeQuery.isError || roleDeptIdsQuery.isError)
+    isCustomScope &&
+    ((!deptTreeQuery.data && deptTreeQuery.isError) ||
+      (!roleDeptIdsQuery.data && roleDeptIdsQuery.isError))
 
   return (
     <Dialog
@@ -224,19 +242,25 @@ export function RolesActionDialog({
             <Form {...form}>
               <form
                 id='role-form'
-                onSubmit={form.handleSubmit((values) => {
-                  if (isEdit) {
-                    if (!values.id) {
-                      toast.error('角色信息缺失，请关闭弹窗后重试。')
+                onSubmit={(event) => {
+                  void form.handleSubmit((values) => {
+                    if (isEdit) {
+                      if (!values.id || !values.version) {
+                        toast.error('角色信息缺失，请关闭弹窗后重试。')
+                        return
+                      }
+
+                      updateMutation.mutate({
+                        ...values,
+                        id: values.id,
+                        version: values.version,
+                      })
                       return
                     }
 
-                    updateMutation.mutate({ ...values, id: values.id })
-                    return
-                  }
-
-                  createMutation.mutate(values)
-                })}
+                    createMutation.mutate(values)
+                  })(event)
+                }}
                 className='space-y-4 px-0.5'
               >
                 <Tabs defaultValue='basic' className='w-full'>

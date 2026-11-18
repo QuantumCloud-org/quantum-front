@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { fetchBlob } from '../api'
-import { canPreview, type SysFile } from '../model'
+import { getPreviewMimeType, type SysFile } from '../model'
 
 type Props = {
   file: SysFile | null
@@ -22,19 +22,21 @@ export function FilePreviewDialog({ file, open, onOpenChange }: Props) {
   const [objectUrl, setObjectUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  const mimeType = getPreviewMimeType(file?.extension)
+
   useEffect(() => {
     let disposed = false
     let createdUrl: string | null = null
 
     async function load() {
-      if (!file || !open || !canPreview(file.extension)) {
+      if (!file || !open || !mimeType) {
         return
       }
       try {
         setLoading(true)
         const blob = await fetchBlob(file.id, 'preview')
         if (disposed) return
-        createdUrl = URL.createObjectURL(blob)
+        createdUrl = URL.createObjectURL(new Blob([blob], { type: mimeType }))
         setObjectUrl(createdUrl)
       } catch {
         toast.error('预览加载失败')
@@ -43,14 +45,14 @@ export function FilePreviewDialog({ file, open, onOpenChange }: Props) {
       }
     }
 
-    load()
+    void load()
 
     return () => {
       disposed = true
       if (createdUrl) URL.revokeObjectURL(createdUrl)
       setObjectUrl(null)
     }
-  }, [file, open])
+  }, [file, open, mimeType])
 
   async function handleDownload() {
     if (!file) return
@@ -67,12 +69,8 @@ export function FilePreviewDialog({ file, open, onOpenChange }: Props) {
     }
   }
 
-  const isImage = file
-    ? ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico'].includes(
-        file.extension
-      )
-    : false
-  const isPdf = file?.extension === 'pdf'
+  const isImage = mimeType?.startsWith('image/')
+  const isPdf = mimeType === 'application/pdf'
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -86,10 +84,16 @@ export function FilePreviewDialog({ file, open, onOpenChange }: Props) {
         <div className='flex min-h-[320px] items-center justify-center overflow-auto rounded border bg-muted/30'>
           {loading ? (
             <span className='text-sm text-muted-foreground'>加载中…</span>
-          ) : !file ? null : !canPreview(file.extension) ? (
+          ) : !file ? null : !mimeType ? (
             <div className='flex flex-col items-center gap-2 p-6 text-sm text-muted-foreground'>
               该类型不支持在线预览
-              <Button variant='outline' size='sm' onClick={handleDownload}>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => {
+                  void handleDownload()
+                }}
+              >
                 <Download className='mr-1 size-4' />
                 下载查看
               </Button>
@@ -110,7 +114,13 @@ export function FilePreviewDialog({ file, open, onOpenChange }: Props) {
         </div>
 
         <DialogFooter>
-          <Button variant='outline' onClick={handleDownload} disabled={!file}>
+          <Button
+            variant='outline'
+            onClick={() => {
+              void handleDownload()
+            }}
+            disabled={!file}
+          >
             <Download className='mr-1 size-4' />
             下载
           </Button>

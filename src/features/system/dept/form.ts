@@ -2,48 +2,57 @@ import { z } from 'zod'
 
 const phonePattern = /^1[3-9]\d{9}$/
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const maskedEmailPattern = /^.\*+@/
 
 function isAllowedStatus(value: string) {
   return value === '0' || value === '1'
 }
 
-export const deptFormSchema = z.object({
-  parentId: z.string().trim().min(1, '请选择父部门。'),
-  deptName: z
-    .string()
-    .trim()
-    .min(1, '请输入部门名称。')
-    .max(50, '部门名称长度不能超过 50 个字符。'),
-  orderNum: z
-    .string()
-    .trim()
-    .min(1, '请输入显示顺序。')
-    .refine((value) => value === '' || /^\d+$/.test(value), {
-      message: '显示顺序必须为非负整数。',
+export const deptFormSchema = z
+  .object({
+    id: z.string().nullable(),
+    version: z.string().nullable(),
+    parentId: z.string().trim().min(1, '请选择父部门。'),
+    deptName: z
+      .string()
+      .trim()
+      .min(1, '请输入部门名称。')
+      .max(50, '部门名称长度不能超过 50 个字符。'),
+    orderNum: z
+      .string()
+      .trim()
+      .min(1, '请输入显示顺序。')
+      .refine((value) => value === '' || /^\d+$/.test(value), {
+        error: '显示顺序必须为非负整数。',
+      }),
+    leader: z
+      .string()
+      .trim()
+      .min(1, '请输入部门负责人。')
+      .max(20, '部门负责人长度不能超过 20 个字符。'),
+    phone: z
+      .string()
+      .trim()
+      .refine((value) => value === '' || phonePattern.test(value), {
+        error: '联系电话格式不正确。',
+      }),
+    email: z
+      .string()
+      .trim()
+      .refine(
+        (value) =>
+          value === '' ||
+          (emailPattern.test(value) && !maskedEmailPattern.test(value)),
+        '邮箱格式不正确。'
+      ),
+    status: z.string().refine(isAllowedStatus, {
+      error: '请选择部门状态。',
     }),
-  leader: z
-    .string()
-    .trim()
-    .min(1, '请输入部门负责人。')
-    .max(20, '部门负责人长度不能超过 20 个字符。'),
-  phone: z
-    .string()
-    .trim()
-    .min(1, '请输入联系电话。')
-    .refine((value) => value === '' || phonePattern.test(value), {
-      message: '联系电话格式不正确。',
-    }),
-  email: z
-    .string()
-    .trim()
-    .refine(
-      (value) => value === '' || emailPattern.test(value),
-      '邮箱格式不正确。'
-    ),
-  status: z.string().refine(isAllowedStatus, {
-    message: '请选择部门状态。',
-  }),
-})
+  })
+  .refine((value) => value.id !== null || value.phone !== '', {
+    path: ['phone'],
+    error: '请输入联系电话。',
+  })
 
 export type DeptFormValues = z.input<typeof deptFormSchema>
 export type DeptForm = z.output<typeof deptFormSchema>

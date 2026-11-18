@@ -1,6 +1,4 @@
-import { iconNames, type IconName } from 'lucide-react/dynamic'
-
-const iconNameSet = new Set<IconName>(iconNames)
+import type { IconName } from 'lucide-react/dynamic'
 
 const LEGACY_BACKEND_ICON_ALIASES: Record<string, IconName> = {
   system: 'settings',
@@ -40,7 +38,7 @@ function normalizeIconToken(iconName: string) {
 
 export function normalizeBackendIconName(
   iconName?: string | null
-): IconName | undefined {
+): string | undefined {
   if (!iconName) {
     return undefined
   }
@@ -50,12 +48,7 @@ export function normalizeBackendIconName(
     return undefined
   }
 
-  const resolvedIconName =
-    LEGACY_BACKEND_ICON_ALIASES[normalizedIconName] ?? normalizedIconName
-
-  if (!iconNameSet.has(resolvedIconName as IconName)) {
-    return undefined
-  }
-
-  return resolvedIconName as IconName
+  return Object.hasOwn(LEGACY_BACKEND_ICON_ALIASES, normalizedIconName)
+    ? LEGACY_BACKEND_ICON_ALIASES[normalizedIconName]
+    : normalizedIconName
 }

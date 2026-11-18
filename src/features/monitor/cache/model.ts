@@ -1,3 +1,5 @@
+import { getRecord, toNumber, toStringValue } from '@/lib/api-normalize'
+
 export type CacheStat = {
   name: string
   hitCount: number
@@ -18,22 +20,6 @@ export type CacheOverview = {
   totalHits: number
   totalMisses: number
   averageHitRate: number
-}
-
-function getRecord(input: unknown): Record<string, unknown> {
-  return (input && typeof input === 'object' ? input : {}) as Record<
-    string,
-    unknown
-  >
-}
-
-function toNumber(value: unknown) {
-  const num = Number(value)
-  return Number.isFinite(num) ? num : 0
-}
-
-function toStringValue(value: unknown) {
-  return typeof value === 'string' ? value : ''
 }
 
 export function parseHitRate(value: string) {

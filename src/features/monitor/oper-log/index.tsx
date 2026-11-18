@@ -1,19 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { AxiosError } from 'axios'
 import {
+  queryOptions,
   keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import {
-  getCoreRowModel,
-  type ColumnDef,
-  useReactTable,
-} from '@tanstack/react-table'
+import { type ColumnDef, useTable } from '@tanstack/react-table'
 import { useAccess } from '@/app/auth/access'
+import { useAuthStore } from '@/stores/auth-store'
 import { RefreshCw, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { queryKeys } from '@/lib/query-keys'
 import { type NavigateFn, useTableUrlState } from '@/hooks/use-table-url-state'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,10 +25,15 @@ import {
   DataTablePagination,
   SelectionBulkActions,
 } from '@/components/data-table'
+import {
+  serverTableFeatures,
+  type ServerTableFeatures,
+} from '@/components/data-table/server-table-features'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
+import { getLogCleanError, logCleanAccess } from '../log-clean'
 import {
   cleanOperLog,
   deleteOperLogs,
@@ -50,13 +54,14 @@ type Props = {
   navigate: NavigateFn
 }
 
-const paginationColumns: ColumnDef<OperLog>[] = []
+const paginationColumns: ColumnDef<ServerTableFeatures, OperLog>[] = []
 
 export function OperLogPage({ search, navigate }: Props) {
   const parsed = operLogSearchSchema.parse(search)
   const queryClient = useQueryClient()
   const canQueryDetail = useAccess({ permissions: ['monitor:operlog:query'] })
   const canRemoveLogs = useAccess({ permissions: ['monitor:operlog:remove'] })
+  const canCleanLogs = useAuthStore((state) => logCleanAccess(state.user))
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [detailLog, setDetailLog] = useState<OperLog | null>(null)
@@ -74,7 +79,17 @@ export function OperLogPage({ search, navigate }: Props) {
     endTime: parsed.endTime ?? '',
   })
 
-  useEffect(() => {
+  const filterSource = JSON.stringify([
+    parsed.beginTime,
+    parsed.businessType,
+    parsed.endTime,
+    parsed.operName,
+    parsed.status,
+    parsed.title,
+  ])
+  const [previousFilterSource, setPreviousFilterSource] = useState(filterSource)
+  if (previousFilterSource !== filterSource) {
+    setPreviousFilterSource(filterSource)
     setLocalFilters({
       title: parsed.title ?? '',
       operName: parsed.operName ?? '',
@@ -84,14 +99,7 @@ export function OperLogPage({ search, navigate }: Props) {
       beginTime: parsed.beginTime ?? '',
       endTime: parsed.endTime ?? '',
     })
-  }, [
-    parsed.beginTime,
-    parsed.businessType,
-    parsed.endTime,
-    parsed.operName,
-    parsed.status,
-    parsed.title,
-  ])
+  }
 
   const { pagination, onPaginationChange, ensurePageInRange } =
     useTableUrlState({
@@ -115,18 +123,20 @@ export function OperLogPage({ search, navigate }: Props) {
     [parsed]
   )
 
-  const logsQuery = useQuery({
-    queryKey: ['monitor', 'operlog', 'page', query],
-    queryFn: () => fetchOperLogPage(query),
-    placeholderData: keepPreviousData,
-  })
+  const logsQuery = useQuery(
+    queryOptions({
+      queryKey: queryKeys.operLogPage(query),
+      queryFn: () => fetchOperLogPage(query),
+      placeholderData: keepPreviousData,
+    })
+  )
 
   const deleteMutation = useMutation({
     mutationFn: (ids: string[]) => deleteOperLogs(ids),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('删除成功')
       setSelectedIds(new Set())
-      queryClient.invalidateQueries({ queryKey: ['monitor', 'operlog'] })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.operLog() })
     },
     onError: (err) => {
       const message =
@@ -137,15 +147,13 @@ export function OperLogPage({ search, navigate }: Props) {
 
   const cleanMutation = useMutation({
     mutationFn: () => cleanOperLog(),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('已清空操作日志')
       setSelectedIds(new Set())
-      queryClient.invalidateQueries({ queryKey: ['monitor', 'operlog'] })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.operLog() })
     },
     onError: (err) => {
-      const message =
-        (err as AxiosError<{ msg?: string }>)?.response?.data?.msg ?? '清空失败'
-      toast.error(message)
+      toast.error(getLogCleanError(err))
     },
   })
 
@@ -157,8 +165,8 @@ export function OperLogPage({ search, navigate }: Props) {
     records: [] as OperLog[],
   }
 
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const paginationTable = useReactTable({
+  const paginationTable = useTable({
+    features: serverTableFeatures,
     data: page.records,
     columns: paginationColumns,
     state: { pagination },
@@ -166,12 +174,18 @@ export function OperLogPage({ search, navigate }: Props) {
     pageCount: Math.max(page.pages, 1),
     rowCount: page.total,
     onPaginationChange,
-    getCoreRowModel: getCoreRowModel(),
   })
 
   useEffect(() => {
-    ensurePageInRange(Math.max(page.pages, 1))
-  }, [ensurePageInRange, page.pages])
+    if (logsQuery.isSuccess && !logsQuery.isPlaceholderData) {
+      ensurePageInRange(Math.max(page.pages, 1), { resetTo: 'last' })
+    }
+  }, [
+    ensurePageInRange,
+    page.pages,
+    logsQuery.isSuccess,
+    logsQuery.isPlaceholderData,
+  ])
 
   function updateSearch(next: Partial<OperLogSearchState>) {
     navigate({
@@ -259,7 +273,9 @@ export function OperLogPage({ search, navigate }: Props) {
             <Button
               variant='outline'
               size='sm'
-              onClick={() => logsQuery.refetch()}
+              onClick={() => {
+                void logsQuery.refetch()
+              }}
               disabled={logsQuery.isFetching}
             >
               <RefreshCw
@@ -269,7 +285,7 @@ export function OperLogPage({ search, navigate }: Props) {
               />
               刷新
             </Button>
-            {canRemoveLogs ? (
+            {canCleanLogs ? (
               <Button
                 variant='destructive'
                 size='sm'
@@ -296,7 +312,9 @@ export function OperLogPage({ search, navigate }: Props) {
           canShowDetail={canQueryDetail}
           onToggleSelectAll={toggleSelectAll}
           onToggleSelect={toggleSelect}
-          onShowDetail={handleShowDetail}
+          onShowDetail={(item) => {
+            void handleShowDetail(item)
+          }}
         />
 
         <DataTablePagination table={paginationTable} className='mt-auto' />
@@ -355,14 +373,14 @@ export function OperLogPage({ search, navigate }: Props) {
       />
 
       <ConfirmDialog
-        open={cleanOpen}
+        open={canCleanLogs && cleanOpen}
         onOpenChange={setCleanOpen}
         title='清空操作日志'
         desc={`确定清空全部 ${page.total} 条操作日志吗?此操作不可撤销。`}
         confirmText='清空'
         destructive
         isLoading={cleanMutation.isPending}
-        disabled={!canRemoveLogs}
+        disabled={!canCleanLogs}
         handleConfirm={() => {
           cleanMutation.mutate(undefined, {
             onSuccess: () => setCleanOpen(false),

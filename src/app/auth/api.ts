@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { queryOptions } from '@tanstack/react-query'
 import type { ApiResult } from '@/types/api'
 import type {
   AuthUser,
@@ -8,10 +9,7 @@ import type {
 } from '@/types/auth'
 import { apiClient } from '@/lib/http'
 import { MOCK_DEMO_USER } from '@/lib/mock/session-fixtures'
-
-function unwrapResult<T>(result: ApiResult<T>) {
-  return result.data
-}
+import { queryKeys } from '@/lib/query-keys'
 
 // Only the fields the authorization path depends on. Loose so every other
 // backend field passes through untouched.
@@ -21,6 +19,7 @@ const authUserSchema = z.looseObject({
   nickname: z.string().default(''),
   roles: z.array(z.string()).default([]),
   permissions: z.array(z.string()).default([]),
+  canClearAuditLogs: z.boolean().default(false),
 })
 
 /**
@@ -41,7 +40,7 @@ export async function fetchCaptcha() {
   const response =
     await apiClient.get<ApiResult<CaptchaPayload>>('/auth/captcha')
 
-  return unwrapResult(response.data)
+  return response.data.data
 }
 
 export async function loginByPassword(payload: LoginCommand) {
@@ -50,10 +49,10 @@ export async function loginByPassword(payload: LoginCommand) {
     payload
   )
 
-  return unwrapResult(response.data)
+  return response.data.data
 }
 
-export async function fetchCurrentUser() {
+export async function fetchCurrentUser(signal?: AbortSignal) {
   // Bare import.meta.env comparison (not a helper call) so a production build —
   // where vite pins the flag to 'false' — folds this to `if (false)` and
   // tree-shakes MOCK_DEMO_USER + fixtures out of the bundle. See src/lib/mock.
@@ -61,15 +60,24 @@ export async function fetchCurrentUser() {
     return MOCK_DEMO_USER
   }
 
-  const response = await apiClient.get<ApiResult<unknown>>('/auth/info')
+  const response = await apiClient.get<ApiResult<unknown>>('/auth/info', {
+    signal,
+  })
 
-  return parseAuthUser(unwrapResult(response.data))
+  return parseAuthUser(response.data.data)
+}
+
+export function currentUserQueryOptions(generation: number) {
+  return queryOptions({
+    queryKey: queryKeys.currentUser(generation),
+    queryFn: ({ signal }) => fetchCurrentUser(signal),
+  })
 }
 
 export async function logoutCurrentUser() {
   const response = await apiClient.post<ApiResult<null>>('/auth/logout')
 
-  return unwrapResult(response.data)
+  return response.data.data
 }
 
 export interface UpdateProfileCommand {
@@ -84,5 +92,5 @@ export interface UpdateProfileCommand {
 export async function updateProfile(payload: UpdateProfileCommand) {
   const response = await apiClient.put<ApiResult<null>>('/auth/info', payload)
 
-  return unwrapResult(response.data)
+  return response.data.data
 }

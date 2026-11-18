@@ -26,9 +26,3 @@ export function toIdList(values: unknown): Id[] {
   if (!Array.isArray(values)) return []
   return values.map(toId).filter((value) => value.length > 0)
 }
-
-export function isSameId(a: Id | null | undefined, b: Id | null | undefined) {
-  const left = (a ?? '').trim()
-  const right = (b ?? '').trim()
-  return left.length > 0 && left === right
-}
